@@ -213,6 +213,11 @@ h1 em { color: var(--color-accent); font-family: Georgia, serif; font-weight: 40
 .pattern-card p { font-size: 10px; line-height: 1.55; }
 .dashboard-footer { border-top: 1px solid var(--color-border); }
 
+/* Chat section */
+.chat-section { margin-top: 43px; }
+.chat-section .section-heading { margin-bottom: 14px; }
+.chat-widget { border: 1px solid var(--color-border); border-radius: var(--radius-card); background: var(--color-surface); overflow: hidden; }
+
 /* Meal logging */
 .meal-logger-page { min-height: 100vh; }
 .meal-logger-wrap { width: min(540px, calc(100% - 48px)); margin: 0 auto; padding: 42px 0 64px; }
@@ -301,6 +306,11 @@ h1 em { color: var(--color-accent); font-family: Georgia, serif; font-weight: 40
 .insight-experiment-content .content-card p { max-width: 620px; font-size: 10px; line-height: 1.65; }
 .insight-experiment-content .card-supporting-text, .insight-experiment-content .progress-track { display: none; }
 .insight-experiment-content .button { flex-shrink: 0; }
+
+/* Chat section for insight page */
+.chat-section { margin-top: 36px; }
+.chat-section .insight-section-heading { margin-bottom: 14px; }
+.chat-widget { border: 1px solid var(--color-border); border-radius: var(--radius-card); background: var(--color-surface); overflow: hidden; }
 
 /* Experiment loop */
 .experiment-page, .result-page { min-height: 100vh; }

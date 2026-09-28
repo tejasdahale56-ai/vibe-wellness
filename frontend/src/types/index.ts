@@ -80,3 +80,8 @@ export type DashboardData = {
   biometrics: BiometricData;
   metrics: WellnessMetric[];
 };
+
+export type ChatMessage = {
+  role: "user" | "assistant";
+  content: string;
+};
