@@ -13,6 +13,7 @@ from .api.insights import router as insights_router
 from .api.dashboard import router as dashboard_router
 from .api.analytics import router as analytics_router
 from .api.chat import router as chat_router
+from .api.goals import router as goals_router
 
 
 Base.metadata.create_all(bind=engine)
@@ -44,6 +45,7 @@ app.include_router(insights_router)
 app.include_router(dashboard_router)
 app.include_router(analytics_router)
 app.include_router(chat_router)
+app.include_router(goals_router)
 
 
 @app.get("/")

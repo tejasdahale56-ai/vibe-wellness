@@ -52,6 +52,12 @@ class User(Base):
         cascade="all, delete-orphan",
     )
 
+    primary_goal: Mapped[Optional["Goal"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        uselist=False,
+    )
+
 
 class Biometric(Base):
     __tablename__ = "biometrics"
@@ -271,4 +277,48 @@ class Pattern(Base):
 
     user: Mapped["User"] = relationship(
         back_populates="patterns",
+    )
+
+
+class Goal(Base):
+    __tablename__ = "goals"
+
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
+
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"),
+        unique=True,
+        index=True,
+    )
+
+    goal_type: Mapped[str] = mapped_column(
+        String(50),
+    )
+
+    display_label: Mapped[str] = mapped_column(
+        String(100),
+    )
+
+    custom_text: Mapped[Optional[str]] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=datetime.utcnow,
+    )
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+    )
+
+    user: Mapped["User"] = relationship(
+        back_populates="primary_goal",
     )

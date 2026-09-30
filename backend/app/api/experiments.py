@@ -5,6 +5,9 @@ from sqlalchemy.orm import Session
 
 from ..analytics.personal import calculate_baseline, get_biometric_history
 from ..analytics.experiments import (
+    MIN_BASELINE_OBSERVATIONS,
+    MIN_EXPERIMENT_PERIOD_OBSERVATIONS,
+    calculate_experiment_measurement,
     get_completed_experiments,
     summarize_experiment_energy,
 )
@@ -14,6 +17,7 @@ from ..models import Experiment, User
 from ..schemas import (
     ExperimentCreate,
     ExperimentEnergySummary,
+    ExperimentMeasurementResponse,
     ExperimentResponse,
 )
 
@@ -50,6 +54,54 @@ def get_experiment_energy_summary(
 ):
     experiments = get_completed_experiments(db, current_user.id)
     return summarize_experiment_energy(experiments)
+
+
+@router.get(
+    "/{experiment_id}/result",
+    response_model=ExperimentMeasurementResponse,
+)
+def get_experiment_result(
+    experiment_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    experiment = (
+        db.query(Experiment)
+        .filter(
+            Experiment.id == experiment_id,
+            Experiment.user_id == current_user.id,
+        )
+        .first()
+    )
+
+    if experiment is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Experiment not found",
+        )
+    if experiment.status != "completed" or experiment.completed_at is None:
+        raise HTTPException(
+            status_code=409,
+            detail="Experiment must be completed before its result is available",
+        )
+
+    biometrics = get_biometric_history(db, current_user.id)
+    measurement = calculate_experiment_measurement(experiment, biometrics)
+    return {
+        "id": experiment.id,
+        "title": experiment.title,
+        "description": experiment.description,
+        "hypothesis": experiment.why,
+        "context": experiment.context,
+        "duration_days": experiment.duration_days,
+        "completed_at": experiment.completed_at,
+        "reflection": experiment.reflection,
+        "minimum_baseline_observations": MIN_BASELINE_OBSERVATIONS,
+        "minimum_experiment_period_observations": (
+            MIN_EXPERIMENT_PERIOD_OBSERVATIONS
+        ),
+        **measurement,
+    }
 
 
 @router.get(

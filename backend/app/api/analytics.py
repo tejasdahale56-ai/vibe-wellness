@@ -5,6 +5,7 @@ from ..analytics.experiments import (
     get_completed_experiments,
     summarize_experiment_energy,
 )
+from ..analytics.discovery import discover_personal_patterns
 from ..analytics.personal import (
     build_insight,
     calculate_baseline,
@@ -16,7 +17,10 @@ from ..analytics.personal import (
 from ..current_user import get_current_user
 from ..database import get_db
 from ..models import User
-from ..schemas import PersonalBaselineResponse
+from ..schemas import (
+    PersonalBaselineResponse,
+    PersonalPatternDiscoveryResponse,
+)
 
 
 router = APIRouter(
@@ -63,6 +67,24 @@ def get_personal_baseline(
             for field, baseline_field in BASELINE_METRIC_FIELDS.items()
         },
     }
+
+
+@router.get("/patterns", response_model=PersonalPatternDiscoveryResponse)
+def get_discovered_patterns(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Return computed, non-persistent associations for the current user."""
+
+    biometrics = get_biometric_history(
+        db=db,
+        user_id=current_user.id,
+    )
+    meals = get_meal_history(
+        db=db,
+        user_id=current_user.id,
+    )
+    return discover_personal_patterns(biometrics, meals)
 
 
 @router.get("/summary")

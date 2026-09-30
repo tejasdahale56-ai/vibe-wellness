@@ -91,6 +91,38 @@ type ApiExperiment = {
   type?: string | null;
 };
 
+type ApiExperimentMeasurementValue = {
+  baseline: number;
+  experiment_period: number;
+  observed_difference: number;
+};
+
+type ApiExperimentMeasurement = {
+  id: number;
+  title: string;
+  description: string;
+  hypothesis?: string | null;
+  context?: string | null;
+  duration_days: number;
+  completed_at: string;
+  baseline_energy: number | null;
+  experiment_period_energy: number | null;
+  observed_energy_difference: number | null;
+  baseline_observation_count: number;
+  experiment_period_observation_count: number;
+  usable_observation_count: number;
+  sufficient_data: boolean;
+  minimum_baseline_observations: number;
+  minimum_experiment_period_observations: number;
+  experiment_period_source:
+    | "biometric_history"
+    | "completion_check_in"
+    | "unavailable";
+  reflection?: string | null;
+  additional_measurements: Record<string, ApiExperimentMeasurementValue>;
+  summary: string;
+};
+
 type ApiPattern = {
   id: number;
   user_id: number;
@@ -183,6 +215,88 @@ export type PatternAnalysisResponse = {
   enough_data_for_pattern: boolean;
   minimum_positive_experiments: number;
   observations: PatternAnalysisObservation[];
+};
+
+type ApiDiscoveredPattern = {
+  title: string;
+  description: string;
+  category: "sleep" | "movement" | "recovery" | "meals";
+  observation_count: number;
+  supporting_detail: string;
+};
+
+type ApiPersonalPatternDiscovery = {
+  biometric_observations: number;
+  meal_timing_observations: number;
+  minimum_observations: number;
+  minimum_group_observations: number;
+  patterns: ApiDiscoveredPattern[];
+};
+
+export type DiscoveredPattern = {
+  title: string;
+  description: string;
+  category: ApiDiscoveredPattern["category"];
+  observationCount: number;
+  supportingDetail: string;
+};
+
+export type PersonalPatternDiscovery = {
+  biometricObservations: number;
+  mealTimingObservations: number;
+  minimumObservations: number;
+  minimumGroupObservations: number;
+  patterns: DiscoveredPattern[];
+};
+
+export type ExperimentMeasurement = {
+  id: string;
+  title: string;
+  description: string;
+  hypothesis?: string;
+  context?: string;
+  durationDays: number;
+  completedAt: string;
+  baselineEnergy: number | null;
+  experimentPeriodEnergy: number | null;
+  observedEnergyDifference: number | null;
+  baselineObservationCount: number;
+  experimentPeriodObservationCount: number;
+  usableObservationCount: number;
+  sufficientData: boolean;
+  minimumBaselineObservations: number;
+  minimumExperimentPeriodObservations: number;
+  experimentPeriodSource: ApiExperimentMeasurement["experiment_period_source"];
+  reflection?: string;
+  additionalMeasurements: Record<string, ApiExperimentMeasurementValue>;
+  summary: string;
+};
+
+export type PrimaryGoalType =
+  | "energy"
+  | "sleep"
+  | "recovery"
+  | "movement"
+  | "meals"
+  | "focus"
+  | "custom";
+
+type ApiPrimaryGoal = {
+  id: number;
+  goal_type: PrimaryGoalType;
+  display_label: string;
+  custom_text: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PrimaryGoal = {
+  id: string;
+  goalType: PrimaryGoalType;
+  displayLabel: string;
+  customText?: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 function mapDashboard(
@@ -321,6 +435,29 @@ export async function createBiometricFromApi(biometric: {
   });
 }
 
+export async function getPrimaryGoalFromApi(): Promise<PrimaryGoal | null> {
+  const data = await request<ApiPrimaryGoal | null>("/api/goals/primary");
+
+  return data ? mapPrimaryGoal(data) : null;
+}
+
+export async function savePrimaryGoalToApi(goal: {
+  goalType: PrimaryGoalType;
+  displayLabel: string;
+  customText?: string;
+}): Promise<PrimaryGoal> {
+  const data = await request<ApiPrimaryGoal>("/api/goals/primary", {
+    method: "PUT",
+    body: JSON.stringify({
+      goal_type: goal.goalType,
+      display_label: goal.displayLabel,
+      custom_text: goal.customText,
+    }),
+  });
+
+  return mapPrimaryGoal(data);
+}
+
 export async function getMealsFromApi(): Promise<Meal[]> {
   const data = await request<ApiMeal[]>(
     "/api/meals",
@@ -363,6 +500,50 @@ export async function getExperimentFromApi(
   );
 
   return mapExperiment(data);
+}
+
+export async function getExperimentResultFromApi(
+  experimentId: Experiment["id"],
+): Promise<ExperimentMeasurement> {
+  const data = await request<ApiExperimentMeasurement>(
+    `/api/experiments/${encodeURIComponent(experimentId)}/result`,
+  );
+
+  return {
+    id: String(data.id),
+    title: data.title,
+    description: data.description,
+    hypothesis: data.hypothesis ?? undefined,
+    context: data.context ?? undefined,
+    durationDays: data.duration_days,
+    completedAt: data.completed_at,
+    baselineEnergy: data.baseline_energy,
+    experimentPeriodEnergy: data.experiment_period_energy,
+    observedEnergyDifference: data.observed_energy_difference,
+    baselineObservationCount: data.baseline_observation_count,
+    experimentPeriodObservationCount:
+      data.experiment_period_observation_count,
+    usableObservationCount: data.usable_observation_count,
+    sufficientData: data.sufficient_data,
+    minimumBaselineObservations: data.minimum_baseline_observations,
+    minimumExperimentPeriodObservations:
+      data.minimum_experiment_period_observations,
+    experimentPeriodSource: data.experiment_period_source,
+    reflection: data.reflection ?? undefined,
+    additionalMeasurements: data.additional_measurements,
+    summary: data.summary,
+  };
+}
+
+function mapPrimaryGoal(data: ApiPrimaryGoal): PrimaryGoal {
+  return {
+    id: String(data.id),
+    goalType: data.goal_type,
+    displayLabel: data.display_label,
+    customText: data.custom_text ?? undefined,
+    createdAt: data.created_at,
+    updatedAt: data.updated_at,
+  };
 }
 
 export async function createExperimentFromApi(
@@ -462,6 +643,26 @@ export async function getAnalyticsSummaryFromApi(): Promise<AnalyticsSummary> {
   return request<AnalyticsSummary>(
     "/api/analytics/summary",
   );
+}
+
+export async function getDiscoveredPatternsFromApi(): Promise<PersonalPatternDiscovery> {
+  const data = await request<ApiPersonalPatternDiscovery>(
+    "/api/analytics/patterns",
+  );
+
+  return {
+    biometricObservations: data.biometric_observations,
+    mealTimingObservations: data.meal_timing_observations,
+    minimumObservations: data.minimum_observations,
+    minimumGroupObservations: data.minimum_group_observations,
+    patterns: data.patterns.map((pattern) => ({
+      title: pattern.title,
+      description: pattern.description,
+      category: pattern.category,
+      observationCount: pattern.observation_count,
+      supportingDetail: pattern.supporting_detail,
+    })),
+  };
 }
 
 export async function getPersonalBaselineFromApi(): Promise<PersonalBaseline> {
