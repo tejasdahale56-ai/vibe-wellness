@@ -13,15 +13,16 @@ import {
   getExperimentsFromApi,
   getTodayInsightFromApi,
 } from "@/lib/api";
-import { getDashboardData, getExperiments, getInsight } from "@/data/demoData";
 import type { DashboardData, Experiment, Insight } from "@/types";
 
 const contextMetricIds = new Set(["sleep", "resting-heart-rate", "hrv", "steps", "energy"]);
 
 export default function InsightPage() {
-  const [dashboard, setDashboard] = useState<DashboardData>(getDashboardData());
-  const [insight, setInsight] = useState<Insight>(getInsight());
-  const [experiment, setExperiment] = useState<Experiment>(getExperiments()[0]);
+  const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+  const [insight, setInsight] = useState<Insight | null>(null);
+  const [experiment, setExperiment] = useState<Experiment | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     async function loadLiveData() {
@@ -31,19 +32,22 @@ export default function InsightPage() {
           getTodayInsightFromApi(),
           getExperimentsFromApi(),
         ]);
-        if (dashData) setDashboard(dashData);
-        if (insData) setInsight(insData);
-        if (expData && expData.length > 0) setExperiment(expData[0]);
+        setDashboard(dashData);
+        setInsight(insData);
+        setExperiment(expData[0] ?? null);
       } catch (err) {
-        console.error("Using fallback local demo data:", err);
+        console.error("Failed to load insight data:", err);
+        setError(true);
+      } finally {
+        setLoading(false);
       }
     }
     loadLiveData();
   }, []);
 
-  const contextMetrics = dashboard.metrics.filter((metric) => contextMetricIds.has(metric.id));
-  const comparableEnergy = insight.comparison.averageAfternoonEnergy;
-  const currentEnergy = dashboard.biometrics.energyScore;
+  const contextMetrics = dashboard?.metrics.filter((metric) => contextMetricIds.has(metric.id)) ?? [];
+  const comparableEnergy = insight?.comparison.averageAfternoonEnergy;
+  const currentEnergy = dashboard?.biometrics.energyScore;
 
   return (
     <main className="page-shell insight-page">
@@ -55,12 +59,14 @@ export default function InsightPage() {
           <p>VIBE noticed a possible pattern in your recent days.</p>
         </header>
 
-        {/* Spotlight Analytics Insight */}
-        <section className="insight-page-spotlight" aria-label="Today's insight">
-          <InsightCard insight={insight} variant="detail" />
-        </section>
+        {loading && <p>Loading your insight...</p>}
+        {!loading && error && <p>We couldn&apos;t load your insight right now.</p>}
 
-        <section className="insight-page-section" aria-labelledby="looked-at-heading">
+        {!loading && !error && insight && <section className="insight-page-spotlight" aria-label="Today's insight">
+          <InsightCard insight={insight} variant="detail" />
+        </section>}
+
+        {!loading && !error && dashboard && <section className="insight-page-section" aria-labelledby="looked-at-heading">
           <div className="insight-section-heading">
             <div>
               <p className="section-eyebrow">PERSONAL CONTEXT</p>
@@ -79,9 +85,9 @@ export default function InsightPage() {
               <TodayMeal />
             </div>
           </div>
-        </section>
+        </section>}
 
-        <section className="insight-page-section comparison-section" aria-labelledby="comparison-heading">
+        {!loading && !error && insight && dashboard && comparableEnergy !== undefined && currentEnergy !== undefined && <section className="insight-page-section comparison-section" aria-labelledby="comparison-heading">
           <div className="insight-section-heading">
             <div>
               <p className="section-eyebrow">A SIMPLE COMPARISON</p>
@@ -111,7 +117,7 @@ export default function InsightPage() {
               Comparable days are days with broadly similar recent signals. This comparison is descriptive, not a prediction.
             </p>
           </div>
-        </section>
+        </section>}
 
         <section className="insight-philosophy" aria-labelledby="philosophy-heading">
           <span className="philosophy-mark" aria-hidden="true">✳</span>
@@ -124,7 +130,7 @@ export default function InsightPage() {
           </div>
         </section>
 
-        {experiment && (
+        {!loading && !error && experiment && (
           <section className="insight-experiment" aria-labelledby="explore-pattern-heading">
             <div className="insight-experiment-copy">
               <p className="section-eyebrow">KEEP IT CURIOUS</p>

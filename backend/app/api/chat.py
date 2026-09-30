@@ -1,10 +1,14 @@
-from typing import List, Optional
+import logging
+from typing import List, Literal, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models import Experiment, Meal, Biometric
+
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/api/chat",
@@ -13,7 +17,7 @@ router = APIRouter(
 
 
 class ChatMessage(BaseModel):
-    role: str
+    role: Literal["user", "assistant"]
     content: str
 
 
@@ -82,7 +86,10 @@ async def chat(request: ChatRequest, db: Session = Depends(get_db)):
 
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
-            raise HTTPException(status_code=500, detail="OpenAI API key not configured")
+            raise HTTPException(
+                status_code=503,
+                detail="Chat service is not configured.",
+            )
 
         client = OpenAI(api_key=api_key)
 
@@ -116,5 +123,11 @@ Guidelines:
 
         return ChatResponse(message=response.choices[0].message.content.strip())
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Chat error: {str(e)}")
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Chat request failed")
+        raise HTTPException(
+            status_code=503,
+            detail="Chat service is temporarily unavailable.",
+        ) from None

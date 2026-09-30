@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 # -------------------------
@@ -10,12 +10,12 @@ from pydantic import BaseModel, ConfigDict
 
 class BiometricBase(BaseModel):
     recorded_at: datetime
-    sleep_minutes: int
-    steps: int
-    resting_heart_rate_bpm: int
-    hrv_milliseconds: int
-    energy_score: float
-    active_minutes: int
+    sleep_minutes: int = Field(ge=0)
+    steps: int = Field(ge=0)
+    resting_heart_rate_bpm: int = Field(gt=0)
+    hrv_milliseconds: int = Field(ge=0)
+    energy_score: float = Field(ge=0, le=10)
+    active_minutes: int = Field(ge=0)
 
 
 class BiometricCreate(BiometricBase):
@@ -62,13 +62,25 @@ class ExperimentBase(BaseModel):
     description: str
     why: Optional[str] = None
     context: Optional[str] = None
-    duration_days: int
-    progress_percent: int = 0
+    duration_days: int = Field(gt=0)
+    progress_percent: int = Field(default=0, ge=0, le=100)
     status: str = "planned"
     status_label: str = "Planned"
-    self_reported_energy: Optional[float] = None
-    energy_after: Optional[float] = None
-    baseline_energy: Optional[float] = None
+    self_reported_energy: Optional[float] = Field(
+        default=None,
+        ge=0,
+        le=10,
+    )
+    energy_after: Optional[float] = Field(
+        default=None,
+        ge=0,
+        le=10,
+    )
+    baseline_energy: Optional[float] = Field(
+        default=None,
+        ge=0,
+        le=10,
+    )
     reflection: Optional[str] = None
     completed_at: Optional[datetime] = None
     pattern_saved: bool = False

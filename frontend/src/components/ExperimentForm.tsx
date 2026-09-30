@@ -1,23 +1,34 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import type { FormEvent } from "react";
-import { completeExperiment } from "@/data/demoData";
+import { useState, type FormEvent } from "react";
+import { completeExperimentFromApi } from "@/lib/api";
 import type { Experiment } from "@/types";
 
 type ExperimentFormProps = { experiment: Experiment };
 
 export default function ExperimentForm({ experiment }: ExperimentFormProps) {
   const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
     const energy = Number(formData.get("energy")) || 7;
     const reflection = String(formData.get("reflection") ?? "");
 
-    completeExperiment(energy, reflection);
-    router.push("/result");
+    try {
+      setIsSubmitting(true);
+      setError(null);
+      await completeExperimentFromApi(experiment.id, energy, reflection);
+      router.push(`/result?experiment_id=${encodeURIComponent(experiment.id)}`);
+    } catch (err) {
+      console.error("Failed to complete experiment:", err);
+      setError("We couldn\u2019t complete your experiment. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -40,7 +51,7 @@ export default function ExperimentForm({ experiment }: ExperimentFormProps) {
           <div className="energy-scale" role="radiogroup" aria-label="Energy from 1 to 10">
             {Array.from({ length: 10 }, (_, index) => index + 1).map((value) => (
               <label className="energy-option" key={value}>
-                <input type="radio" name="energy" value={value} defaultChecked={value === 7} />
+                <input type="radio" name="energy" value={value} defaultChecked={value === 7} disabled={isSubmitting} />
                 <span>{value}</span>
               </label>
             ))}
@@ -50,10 +61,11 @@ export default function ExperimentForm({ experiment }: ExperimentFormProps) {
 
         <div className="form-field experiment-reflection-field">
           <label className="form-label" htmlFor="experiment-reflection">Anything else you noticed? <span>(optional)</span></label>
-          <textarea className="meal-textarea" id="experiment-reflection" name="reflection" placeholder="e.g. I felt more focused..." rows={3} />
+          <textarea className="meal-textarea" id="experiment-reflection" name="reflection" placeholder="e.g. I felt more focused..." rows={3} disabled={isSubmitting} />
         </div>
 
-        <button className="button button-dark complete-experiment-button" type="submit">Complete experiment <span aria-hidden="true">→</span></button>
+        {error && <p className="meal-validation" role="alert">{error}</p>}
+        <button className="button button-dark complete-experiment-button" type="submit" disabled={isSubmitting}>{isSubmitting ? "Completing experiment..." : <>Complete experiment <span aria-hidden="true">→</span></>}</button>
       </form>
     </div>
   );

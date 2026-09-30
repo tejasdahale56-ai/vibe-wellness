@@ -7,12 +7,13 @@ import ExperimentForm from "@/components/ExperimentForm";
 import CreateExperimentForm from "@/components/CreateExperimentForm";
 import { Plus } from "lucide-react";
 import { getExperimentsFromApi } from "@/lib/api";
-import { getExperiments } from "@/data/demoData";
 import type { Experiment } from "@/types";
 
 export default function ExperimentPage() {
-  const [experiment, setExperiment] = useState<Experiment>(getExperiments()[0]);
+  const [experiment, setExperiment] = useState<Experiment | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     async function loadExperiments() {
@@ -22,7 +23,10 @@ export default function ExperimentPage() {
           setExperiment(experiments[0]);
         }
       } catch (err) {
-        console.error("Using fallback demo data:", err);
+        console.error("Failed to load experiments:", err);
+        setError(true);
+      } finally {
+        setLoading(false);
       }
     }
     loadExperiments();
@@ -64,7 +68,10 @@ export default function ExperimentPage() {
           <CreateExperimentForm onClose={() => setShowCreateForm(false)} onCreated={handleCreateExperiment} />
         )}
 
-        {!showCreateForm && experiment && <ExperimentForm experiment={experiment} />}
+        {!showCreateForm && loading && <p>Loading your experiment...</p>}
+        {!showCreateForm && error && <p>We couldn\u2019t load your experiment.</p>}
+        {!showCreateForm && !loading && !error && experiment && <ExperimentForm experiment={experiment} />}
+        {!showCreateForm && !loading && !error && !experiment && <p>No experiments yet. Create one to get started.</p>}
 
         {!showCreateForm && (
           <Link className="text-link" href="/experiment/create">

@@ -119,6 +119,17 @@ type ApiChatResponse = {
   message: string;
 };
 
+export type AnalyticsSummary = {
+  baseline: {
+    days: number;
+  };
+  insight: {
+    comparison: {
+      comparable_days: number;
+    };
+  };
+};
+
 function mapDashboard(
   data: ApiDashboardResponse,
 ): DashboardData {
@@ -238,6 +249,24 @@ export async function getMealsFromApi(): Promise<Meal[]> {
   return data.map(mapMeal);
 }
 
+export async function createMealFromApi(
+  meal: Omit<Meal, "id">,
+): Promise<Meal> {
+  const data = await request<ApiMeal>("/api/meals?user_id=1", {
+    method: "POST",
+    body: JSON.stringify({
+      name: meal.name,
+      meal_type: meal.mealType,
+      description: meal.description,
+      logged_at: meal.loggedAt,
+      time_label: meal.timeLabel,
+      tags: meal.tags,
+    }),
+  });
+
+  return mapMeal(data);
+}
+
 export async function getExperimentsFromApi(): Promise<Experiment[]> {
   const data = await request<ApiExperiment[]>(
     "/api/experiments?user_id=1",
@@ -246,13 +275,56 @@ export async function getExperimentsFromApi(): Promise<Experiment[]> {
   return data.map(mapExperiment);
 }
 
+export async function getExperimentFromApi(
+  experimentId: Experiment["id"],
+): Promise<Experiment> {
+  const data = await request<ApiExperiment>(
+    `/api/experiments/${encodeURIComponent(experimentId)}?user_id=1`,
+  );
+
+  return mapExperiment(data);
+}
+
 export async function createExperimentFromApi(
   experiment: Omit<Experiment, "id">,
 ): Promise<Experiment> {
-  const data = await request<ApiExperiment>("/api/experiments", {
+  const data = await request<ApiExperiment>("/api/experiments?user_id=1", {
     method: "POST",
-    body: JSON.stringify({ ...experiment, user_id: 1 }),
+    body: JSON.stringify({
+      title: experiment.title,
+      description: experiment.description,
+      why: experiment.why,
+      context: experiment.context,
+      duration_days: experiment.durationDays,
+      progress_percent: experiment.progressPercent,
+      status: experiment.status,
+      status_label: experiment.statusLabel,
+      self_reported_energy: experiment.selfReportedEnergy,
+      energy_after: experiment.energyAfter,
+      baseline_energy: experiment.baselineEnergy,
+      reflection: experiment.reflection,
+      completed_at: experiment.completedAt,
+      pattern_saved: experiment.patternSaved,
+    }),
   });
+
+  return mapExperiment(data);
+}
+
+export async function completeExperimentFromApi(
+  experimentId: Experiment["id"],
+  selfReportedEnergy: number,
+  reflection = "",
+): Promise<Experiment> {
+  const params = new URLSearchParams({
+    self_reported_energy: String(selfReportedEnergy),
+    reflection,
+    user_id: "1",
+  });
+  const data = await request<ApiExperiment>(
+    `/api/experiments/${encodeURIComponent(experimentId)}/complete?${params}`,
+    { method: "PATCH" },
+  );
 
   return mapExperiment(data);
 }
@@ -263,6 +335,23 @@ export async function getPatternsFromApi(): Promise<Pattern[]> {
   );
 
   return data.map(mapPattern);
+}
+
+export async function createPatternFromApi(
+  pattern: Omit<Pattern, "id">,
+): Promise<Pattern> {
+  const data = await request<ApiPattern>("/api/patterns?user_id=1", {
+    method: "POST",
+    body: JSON.stringify({
+      title: pattern.title,
+      description: pattern.description,
+      category: pattern.category,
+      observation_count: pattern.observationCount,
+      supporting_detail: pattern.supportingDetail,
+    }),
+  });
+
+  return mapPattern(data);
 }
 
 export async function getTodayInsightFromApi(): Promise<Insight> {
@@ -284,8 +373,8 @@ export async function sendChatMessage(
   return data.message;
 }
 
-export async function getAnalyticsSummaryFromApi() {
-  return request(
+export async function getAnalyticsSummaryFromApi(): Promise<AnalyticsSummary> {
+  return request<AnalyticsSummary>(
     "/api/analytics/summary?user_id=1",
   );
 }

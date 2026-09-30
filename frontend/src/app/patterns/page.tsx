@@ -1,8 +1,16 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import LatestExperimentPattern from "@/components/LatestExperimentPattern";
 import Navbar from "@/components/Navbar";
 import PatternCard from "@/components/PatternCard";
-import { getPatternSummary, getPatterns } from "@/data/demoData";
+import {
+  getAnalyticsSummaryFromApi,
+  getExperimentsFromApi,
+  getPatternsFromApi,
+} from "@/lib/api";
+import type { Pattern, PatternSummary } from "@/types";
 
 const categories = [
   { title: "Sleep", description: "How changes in sleep line up with your energy.", symbol: "☾", tone: "sleep" },
@@ -11,8 +19,37 @@ const categories = [
 ] as const;
 
 export default function PatternsPage() {
-  const patterns = getPatterns();
-  const summary = getPatternSummary();
+  const [patterns, setPatterns] = useState<Pattern[]>([]);
+  const [summary, setSummary] = useState<PatternSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    async function loadPatterns() {
+      try {
+        const [patternData, analytics, experiments] = await Promise.all([
+          getPatternsFromApi(),
+          getAnalyticsSummaryFromApi(),
+          getExperimentsFromApi(),
+        ]);
+        setPatterns(patternData);
+        setSummary({
+          comparableDays: analytics.insight.comparison.comparable_days,
+          observations: patternData.length,
+          experimentsCompleted: experiments.filter(
+            (experiment) => experiment.status === "completed",
+          ).length,
+        });
+      } catch (err) {
+        console.error("Failed to load patterns:", err);
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    void loadPatterns();
+  }, []);
 
   return (
     <main className="page-shell patterns-page">
@@ -27,16 +64,19 @@ export default function PatternsPage() {
         <section className="pattern-summary" aria-labelledby="pattern-summary-title">
           <div><p className="section-eyebrow">A PERSONAL COLLECTION</p><h2 id="pattern-summary-title">Your history so far</h2></div>
           <dl className="pattern-summary-stats">
-            <div><dt>Comparable days</dt><dd>{summary.comparableDays}</dd></div>
-            <div><dt>Observations</dt><dd>{summary.observations}</dd></div>
-            <div><dt>Experiment completed</dt><dd>{summary.experimentsCompleted}</dd></div>
+            <div><dt>Comparable days</dt><dd>{summary?.comparableDays ?? "—"}</dd></div>
+            <div><dt>Observations</dt><dd>{summary?.observations ?? "—"}</dd></div>
+            <div><dt>Experiment completed</dt><dd>{summary?.experimentsCompleted ?? "—"}</dd></div>
           </dl>
         </section>
 
         <section className="patterns-page-section" aria-labelledby="collected-patterns-title">
-          <div className="patterns-page-section-heading"><div><p className="section-eyebrow">OBSERVATIONS, NOT CONCLUSIONS</p><h2 id="collected-patterns-title">What has appeared in your history</h2></div><span>{patterns.length} observations</span></div>
+          <div className="patterns-page-section-heading"><div><p className="section-eyebrow">OBSERVATIONS, NOT CONCLUSIONS</p><h2 id="collected-patterns-title">What has appeared in your history</h2></div><span>{summary ? `${patterns.length} observations` : "— observations"}</span></div>
           <div className="patterns-collection-grid">
-            {patterns.map((pattern) => <PatternCard key={pattern.id} pattern={pattern} />)}
+            {loading && <p>Loading your saved observations...</p>}
+            {error && <p>We couldn&apos;t load your saved observations.</p>}
+            {!loading && !error && patterns.length === 0 && <p>No saved observations yet.</p>}
+            {!loading && !error && patterns.map((pattern) => <PatternCard key={pattern.id} pattern={pattern} />)}
           </div>
         </section>
 

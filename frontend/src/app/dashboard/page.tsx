@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 
 import ExperimentCard from "@/components/ExperimentCard";
@@ -10,13 +10,6 @@ import MetricCard from "@/components/MetricCard";
 import Navbar from "@/components/Navbar";
 import PatternCard from "@/components/PatternCard";
 import TodayMeal from "@/components/TodayMeal";
-import {
-  getDashboardData as getDemoDashboard,
-  getExperiments as getDemoExperiments,
-  getInsight as getDemoInsight,
-  getPatterns as getDemoPatterns,
-  getTodayMeal as getDemoMeal,
-} from "@/data/demoData";
 
 import {
   getDashboardFromApi,
@@ -33,6 +26,25 @@ import type {
   Meal,
   Pattern,
 } from "@/types";
+
+function subscribeToLocalDate() {
+  return () => {};
+}
+
+function getLocalDate() {
+  const today = new Date();
+  const weekday = today
+    .toLocaleDateString("en-US", { weekday: "long" })
+    .toUpperCase();
+  const monthDay = today
+    .toLocaleDateString("en-US", {
+      month: "long",
+      day: "numeric",
+    })
+    .toUpperCase();
+
+  return `${weekday}|${monthDay}`;
+}
 
 export default function DashboardPage() {
   const [dashboard, setDashboard] =
@@ -51,11 +63,20 @@ export default function DashboardPage() {
     useState<Meal | null>(null);
 
   const [loading, setLoading] = useState(true);
+  const [error, setError] =
+    useState<string | null>(null);
+  const localDate = useSyncExternalStore(
+    subscribeToLocalDate,
+    getLocalDate,
+    () => null,
+  );
+  const [weekday, monthDay] = localDate?.split("|") ?? [];
 
   useEffect(() => {
     async function loadDashboard() {
       try {
         setLoading(true);
+        setError(null);
         const [
           dashboardData,
           insightData,
@@ -76,12 +97,12 @@ export default function DashboardPage() {
         setPatterns(patternsData);
         setMeal(mealsData[0] ?? null);
       } catch (err) {
-        console.warn("Dashboard API unavailable; using demo data.", err);
-        setDashboard(getDemoDashboard());
-        setInsight(getDemoInsight());
-        setExperiment(getDemoExperiments()[0] ?? null);
-        setPatterns(getDemoPatterns());
-        setMeal(getDemoMeal());
+        console.error("Failed to load dashboard:", err);
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Something went wrong while loading your dashboard.",
+        );
       } finally {
         setLoading(false);
       }
@@ -100,9 +121,13 @@ export default function DashboardPage() {
       <div className="dashboard-main wrap">
         <header className="dashboard-greeting">
           <p className="dashboard-date">
-            TUESDAY{" "}
-            <span aria-hidden="true">·</span>{" "}
-            OCTOBER 14
+            {localDate && (
+              <>
+                {weekday}{" "}
+                <span aria-hidden="true">·</span>{" "}
+                {monthDay}
+              </>
+            )}
           </p>
 
           <h1>Good afternoon, Alex.</h1>
@@ -122,7 +147,22 @@ export default function DashboardPage() {
           </section>
         )}
 
+        {!loading && error && (
+          <section
+            className="dashboard-section"
+            aria-live="assertive"
+          >
+            <p>
+              We couldn&apos;t load your wellness
+              data.
+            </p>
+
+            <p>{error}</p>
+          </section>
+        )}
+
         {!loading &&
+          !error &&
           dashboard &&
           insight && (
             <>

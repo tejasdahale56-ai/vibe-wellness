@@ -3,6 +3,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from ..analytics.personal import calculate_baseline, get_biometric_history
 from ..database import get_db
 from ..models import Experiment
 from ..schemas import ExperimentCreate, ExperimentResponse
@@ -107,6 +108,12 @@ def complete_experiment(
     experiment.self_reported_energy = self_reported_energy
     experiment.reflection = reflection
     experiment.energy_after = self_reported_energy
+    if experiment.baseline_energy is None:
+        biometrics = get_biometric_history(db, user_id)
+        if biometrics:
+            experiment.baseline_energy = calculate_baseline(
+                biometrics
+            )["average_energy_score"]
     experiment.progress_percent = 100
     experiment.status = "completed"
     experiment.status_label = "Completed"

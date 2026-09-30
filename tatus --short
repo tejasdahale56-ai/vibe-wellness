@@ -1,0 +1,15 @@
+ backend/app/api/chat.py                            |  23 [32m++++[m[31m-[m
+ backend/app/api/experiments.py                     |   9 [32m+[m[31m-[m
+ backend/app/schemas.py                             |  38 [32m++++[m[31m---[m
+ frontend/src/app/dashboard/page.tsx                |  74 [32m++++++++++[m[31m----[m
+ frontend/src/app/experiment/page.tsx               |  17 [32m+++[m[31m-[m
+ frontend/src/app/insight/page.tsx                  |  46 [32m+++++[m[31m----[m
+ frontend/src/app/patterns/page.tsx                 |  56 [32m+++++++++[m[31m--[m
+ frontend/src/app/result/page.tsx                   |  12 [32m++[m[31m-[m
+ frontend/src/components/ExperimentForm.tsx         |  28 [32m++++[m[31m--[m
+ frontend/src/components/ExperimentResultView.tsx   | 110 [32m+++++++++++++++++[m[31m----[m
+ .../src/components/LatestExperimentPattern.tsx     |  61 [32m+++++++++[m[31m---[m
+ frontend/src/components/MealLogForm.tsx            |  30 [32m++++[m[31m--[m
+ frontend/src/components/TodayMeal.tsx              |  44 [32m++++++++[m[31m-[m
+ frontend/src/lib/api.ts                            |  99 [32m++++++++++++++++++[m[31m-[m
+ 14 files changed, 523 insertions(+), 124 deletions(-)
