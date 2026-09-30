@@ -132,6 +132,38 @@ export type AnalyticsSummary = {
   };
 };
 
+type ApiPersonalBaselineMetric = {
+  baseline: number | null;
+  latest: number | null;
+  difference: number | null;
+};
+
+type ApiPersonalBaseline = {
+  observation_count: number;
+  latest_recorded_at: string | null;
+  metrics: {
+    sleep_minutes: ApiPersonalBaselineMetric;
+    steps: ApiPersonalBaselineMetric;
+    resting_heart_rate_bpm: ApiPersonalBaselineMetric;
+    hrv_milliseconds: ApiPersonalBaselineMetric;
+    active_minutes: ApiPersonalBaselineMetric;
+    energy_score: ApiPersonalBaselineMetric;
+  };
+};
+
+export type PersonalBaseline = {
+  observationCount: number;
+  latestRecordedAt?: string;
+  metrics: {
+    sleepMinutes: ApiPersonalBaselineMetric;
+    steps: ApiPersonalBaselineMetric;
+    restingHeartRateBpm: ApiPersonalBaselineMetric;
+    hrvMilliseconds: ApiPersonalBaselineMetric;
+    activeMinutes: ApiPersonalBaselineMetric;
+    energyScore: ApiPersonalBaselineMetric;
+  };
+};
+
 export type PatternAnalysisObservation = {
   kind: string;
   feature_type: string;
@@ -430,4 +462,21 @@ export async function getAnalyticsSummaryFromApi(): Promise<AnalyticsSummary> {
   return request<AnalyticsSummary>(
     "/api/analytics/summary",
   );
+}
+
+export async function getPersonalBaselineFromApi(): Promise<PersonalBaseline> {
+  const data = await request<ApiPersonalBaseline>("/api/analytics/baseline");
+
+  return {
+    observationCount: data.observation_count,
+    latestRecordedAt: data.latest_recorded_at ?? undefined,
+    metrics: {
+      sleepMinutes: data.metrics.sleep_minutes,
+      steps: data.metrics.steps,
+      restingHeartRateBpm: data.metrics.resting_heart_rate_bpm,
+      hrvMilliseconds: data.metrics.hrv_milliseconds,
+      activeMinutes: data.metrics.active_minutes,
+      energyScore: data.metrics.energy_score,
+    },
+  };
 }

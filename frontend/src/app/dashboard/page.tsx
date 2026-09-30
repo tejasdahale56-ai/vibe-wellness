@@ -15,8 +15,10 @@ import {
   getDashboardFromApi,
   getExperimentsFromApi,
   getMealsFromApi,
+  getPersonalBaselineFromApi,
   getPatternsFromApi,
   getTodayInsightFromApi,
+  type PersonalBaseline,
 } from "@/lib/api";
 
 import type {
@@ -25,6 +27,7 @@ import type {
   Insight,
   Meal,
   Pattern,
+  WellnessMetric,
 } from "@/types";
 
 function subscribeToLocalDate() {
@@ -46,6 +49,72 @@ function getLocalDate() {
   return `${weekday}|${monthDay}`;
 }
 
+function formatBaselineValue(
+  value: number | null,
+  unit: "hours" | "count" | "bpm" | "ms" | "minutes" | "score",
+) {
+  if (value === null) return "—";
+
+  switch (unit) {
+    case "hours":
+      return `${(value / 60).toFixed(1)}h`;
+    case "count":
+      return Math.round(value).toLocaleString();
+    case "bpm":
+      return `${Math.round(value)} bpm`;
+    case "ms":
+      return `${Math.round(value)} ms`;
+    case "minutes":
+      return `${Math.round(value)} min`;
+    case "score":
+      return `${value.toFixed(1)} / 10`;
+  }
+}
+
+function formatBaselineDifference(
+  value: number | null,
+  unit: "hours" | "count" | "bpm" | "ms" | "minutes" | "score",
+) {
+  if (value === null) return "No difference available";
+
+  const sign = value > 0 ? "+" : "";
+  const adjustedValue = unit === "hours" ? value / 60 : value;
+  const formatted = unit === "score"
+    ? adjustedValue.toFixed(1)
+    : unit === "hours"
+      ? adjustedValue.toFixed(1)
+      : Math.round(adjustedValue).toLocaleString();
+  const suffix = unit === "hours" ? "h" : unit === "bpm" ? " bpm" : unit === "ms" ? " ms" : unit === "minutes" ? " min" : "";
+
+  return `${sign}${formatted}${suffix} vs baseline`;
+}
+
+function buildBaselineMetrics(baseline: PersonalBaseline): WellnessMetric[] {
+  const definitions = [
+    ["sleep", "Sleep", "sleepMinutes", "hours"],
+    ["steps", "Steps", "steps", "count"],
+    ["resting-heart-rate", "Resting HR", "restingHeartRateBpm", "bpm"],
+    ["hrv", "HRV", "hrvMilliseconds", "ms"],
+    ["active-minutes", "Active minutes", "activeMinutes", "minutes"],
+    ["energy", "Energy", "energyScore", "score"],
+  ] as const;
+
+  return definitions.map(([id, label, key, unit]) => {
+    const metric = baseline.metrics[key];
+
+    return {
+      id,
+      label,
+      value: formatBaselineValue(metric.latest, unit),
+      description: metric.baseline === null
+        ? "Personal baseline unavailable"
+        : `Baseline ${formatBaselineValue(metric.baseline, unit)} · ${formatBaselineDifference(metric.difference, unit)}`,
+      icon: id,
+      tone: "neutral",
+    };
+  });
+}
+
 export default function DashboardPage() {
   const [dashboard, setDashboard] =
     useState<DashboardData | null>(null);
@@ -65,6 +134,10 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] =
     useState<string | null>(null);
+  const [personalBaseline, setPersonalBaseline] =
+    useState<PersonalBaseline | null>(null);
+  const [baselineLoading, setBaselineLoading] = useState(true);
+  const [baselineError, setBaselineError] = useState(false);
   const localDate = useSyncExternalStore(
     subscribeToLocalDate,
     getLocalDate,
@@ -110,6 +183,27 @@ export default function DashboardPage() {
 
     loadDashboard();
   }, []);
+
+  useEffect(() => {
+    async function loadPersonalBaseline() {
+      try {
+        setBaselineLoading(true);
+        setBaselineError(false);
+        setPersonalBaseline(await getPersonalBaselineFromApi());
+      } catch (err) {
+        console.error("Failed to load personal baseline:", err);
+        setBaselineError(true);
+      } finally {
+        setBaselineLoading(false);
+      }
+    }
+
+    void loadPersonalBaseline();
+  }, []);
+
+  const baselineMetrics = personalBaseline
+    ? buildBaselineMetrics(personalBaseline)
+    : [];
 
   return (
     <main className="page-shell dashboard-page">
@@ -190,6 +284,38 @@ export default function DashboardPage() {
                     ),
                   )}
                 </div>
+              </section>
+
+              <section
+                className="dashboard-section experiment-section"
+                aria-labelledby="personal-baseline-title"
+              >
+                <div className="section-heading">
+                  <div>
+                    <p className="section-eyebrow">
+                      YOUR PERSONAL HISTORY
+                    </p>
+                    <h2 id="personal-baseline-title">
+                      Personal baseline
+                    </h2>
+                  </div>
+                  <span>
+                    {personalBaseline
+                      ? `${personalBaseline.observationCount} observations`
+                      : "Latest values and averages"}
+                  </span>
+                </div>
+
+                {baselineLoading && <p>Loading your personal baseline...</p>}
+                {!baselineLoading && baselineError && <p>We couldn&apos;t load your personal baseline.</p>}
+                {!baselineLoading && !baselineError && personalBaseline?.observationCount === 0 && <p>No biometric observations yet.</p>}
+                {!baselineLoading && !baselineError && personalBaseline && personalBaseline.observationCount > 0 && (
+                  <div className="signals-grid">
+                    {baselineMetrics.map((metric) => (
+                      <MetricCard key={metric.id} metric={metric} />
+                    ))}
+                  </div>
+                )}
               </section>
 
               <div className="dashboard-feature-grid">

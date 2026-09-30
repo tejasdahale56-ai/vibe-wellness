@@ -206,3 +206,19 @@ class WellnessMetricResponse(BaseModel):
 class DashboardResponse(BaseModel):
     biometrics: BiometricResponse
     metrics: list[WellnessMetricResponse]
+
+
+# -------------------------
+# Analytics
+# -------------------------
+
+class PersonalBaselineMetricResponse(BaseModel):
+    baseline: Optional[float] = None
+    latest: Optional[float] = None
+    difference: Optional[float] = None
+
+
+class PersonalBaselineResponse(BaseModel):
+    observation_count: int = Field(ge=0)
+    latest_recorded_at: Optional[datetime] = None
+    metrics: dict[str, PersonalBaselineMetricResponse]
