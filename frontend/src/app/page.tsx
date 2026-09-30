@@ -1,12 +1,40 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import InsightCard from "@/components/InsightCard";
 import MetricCard from "@/components/MetricCard";
 import Navbar from "@/components/Navbar";
-import { getDashboardData, getInsight } from "@/data/demoData";
+import { getDashboardFromApi, getTodayInsightFromApi } from "@/lib/api";
+import type { DashboardData, Insight } from "@/types";
 import Link from "next/link";
 
 export default function Home() {
-  const dashboard = getDashboardData();
-  const insight = getInsight();
+  const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+  const [insight, setInsight] = useState<Insight | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadPreview() {
+      const [dashboardResult, insightResult] = await Promise.allSettled([
+        getDashboardFromApi(),
+        getTodayInsightFromApi(),
+      ]);
+
+      if (!isMounted) return;
+      if (dashboardResult.status === "fulfilled") {
+        setDashboard(dashboardResult.value);
+      }
+      if (insightResult.status === "fulfilled") {
+        setInsight(insightResult.value);
+      }
+    }
+
+    void loadPreview();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <main className="page-shell" id="home">
@@ -17,15 +45,24 @@ export default function Home() {
           <h1 id="hero-title">Feel more<br />like <em>you.</em></h1>
           <p className="hero-tagline">Your body has patterns. We help you discover them.</p>
           <p className="hero-description">Wellness isn’t one-size-fits-all. VIBE helps you notice the little things, understand your patterns, and find what feels right for you.</p>
-          <div className="hero-actions" id="get-started"><Link className="button button-dark" href="/dashboard">Find your rhythm <span aria-hidden="true">↗</span></Link><span className="no-pressure">A gentler way to check in with yourself.</span></div>
+          <div className="hero-actions" id="get-started"><Link className="button button-dark" href="/onboarding">Find your rhythm <span aria-hidden="true">↗</span></Link><span className="no-pressure">A gentler way to check in with yourself.</span></div>
           <div className="social-proof"><div className="avatars" aria-hidden="true"><span>J</span><span>M</span><span>A</span></div><p>Made for real life, <strong>not perfection.</strong></p></div>
         </div>
         <div className="hero-visual" aria-label="A preview of your personal wellness insights">
           <div className="sun-glow" aria-hidden="true" /><div className="orbit orbit-one" aria-hidden="true" /><div className="orbit orbit-two" aria-hidden="true" />
           <span className="sparkle sparkle-one" aria-hidden="true">✳</span><span className="sparkle sparkle-two" aria-hidden="true">✳</span>
           <article className="insight-card">
-            <InsightCard insight={insight} />
-            <div className="preview-metrics" aria-label="Today’s wellness signals">{dashboard.metrics.map((metric) => <MetricCard key={metric.id} metric={metric} />)}</div>
+            {insight ? <InsightCard insight={insight} /> : (
+              <div className="insight-summary">
+                <div className="card-topline"><span className="card-kicker">YOUR DAILY VIBE</span></div>
+                <div className="score-copy"><span className="score-label">A PLACE TO START</span><strong>Check in to see your personal patterns.</strong></div>
+              </div>
+            )}
+            <div className="preview-metrics" aria-label="Today’s wellness signals">
+              {dashboard?.metrics.length ? dashboard.metrics.map((metric) => <MetricCard key={metric.id} metric={metric} />) : (
+                <p>Complete a check-in to see your wellness signals here.</p>
+              )}
+            </div>
             <div className="card-foot"><span className="foot-sparkle" aria-hidden="true">✦</span><span>Small steps count, too.</span><span className="foot-arrow" aria-hidden="true">↗</span></div>
           </article>
           <div className="floating-note"><span className="note-icon" aria-hidden="true">✿</span><span><strong>Your pace is the right pace.</strong><small>One day at a time</small></span></div>

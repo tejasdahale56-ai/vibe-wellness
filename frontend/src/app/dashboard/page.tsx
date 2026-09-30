@@ -53,8 +53,8 @@ export default function DashboardPage() {
   const [insight, setInsight] =
     useState<Insight | null>(null);
 
-  const [experiment, setExperiment] =
-    useState<Experiment | null>(null);
+  const [experiments, setExperiments] =
+    useState<Experiment[]>([]);
 
   const [patterns, setPatterns] =
     useState<Pattern[]>([]);
@@ -93,7 +93,7 @@ export default function DashboardPage() {
 
         setDashboard(dashboardData);
         setInsight(insightData);
-        setExperiment(experimentsData[0] ?? null);
+        setExperiments(experimentsData);
         setPatterns(patternsData);
         setMeal(mealsData[0] ?? null);
       } catch (err) {
@@ -130,7 +130,7 @@ export default function DashboardPage() {
             )}
           </p>
 
-          <h1>Good afternoon, Alex.</h1>
+          <h1>Good afternoon.</h1>
 
           <p>
             Here&apos;s what your day is looking
@@ -259,21 +259,19 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                {experiment ? (
+                {experiments.some((item) => item.status !== "completed") ? (
                   <div className="experiment-preview">
-                    <ExperimentCard
-                      experiment={experiment}
-                    />
-
-                    <Link
-                      className="button button-outline"
-                      href="/experiment"
-                    >
-                      Try it{" "}
-                      <span aria-hidden="true">
-                        →
-                      </span>
-                    </Link>
+                    {experiments.filter((item) => item.status !== "completed").map((item) => (
+                      <div key={item.id}>
+                        <ExperimentCard experiment={item} />
+                        <Link
+                          className="button button-outline"
+                          href={`/experiment?experiment_id=${encodeURIComponent(item.id)}`}
+                        >
+                          Try it <span aria-hidden="true">→</span>
+                        </Link>
+                      </div>
+                    ))}
                   </div>
                 ) : (
                   <p>

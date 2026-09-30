@@ -8,8 +8,10 @@ import PatternCard from "@/components/PatternCard";
 import {
   getAnalyticsSummaryFromApi,
   getExperimentsFromApi,
+  getPatternAnalysisFromApi,
   getPatternsFromApi,
 } from "@/lib/api";
+import type { PatternAnalysisResponse } from "@/lib/api";
 import type { Pattern, PatternSummary } from "@/types";
 
 const categories = [
@@ -21,10 +23,24 @@ const categories = [
 export default function PatternsPage() {
   const [patterns, setPatterns] = useState<Pattern[]>([]);
   const [summary, setSummary] = useState<PatternSummary | null>(null);
+  const [analysis, setAnalysis] = useState<PatternAnalysisResponse | null>(null);
+  const [analysisLoading, setAnalysisLoading] = useState(true);
+  const [analysisError, setAnalysisError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
   useEffect(() => {
+    async function loadPatternAnalysis() {
+      try {
+        setAnalysis(await getPatternAnalysisFromApi());
+      } catch (err) {
+        console.error("Failed to load pattern analysis:", err);
+        setAnalysisError(true);
+      } finally {
+        setAnalysisLoading(false);
+      }
+    }
+
     async function loadPatterns() {
       try {
         const [patternData, analytics, experiments] = await Promise.all([
@@ -48,8 +64,17 @@ export default function PatternsPage() {
       }
     }
 
+    void loadPatternAnalysis();
     void loadPatterns();
   }, []);
+
+  const observations = analysis?.enough_data_for_pattern
+    ? analysis.observations.filter(
+        (observation) =>
+          observation.causal_claim === false &&
+          observation.positive_experiments_with_feature >= 2,
+      )
+    : [];
 
   return (
     <main className="page-shell patterns-page">
@@ -77,6 +102,47 @@ export default function PatternsPage() {
             {error && <p>We couldn&apos;t load your saved observations.</p>}
             {!loading && !error && patterns.length === 0 && <p>No saved observations yet.</p>}
             {!loading && !error && patterns.map((pattern) => <PatternCard key={pattern.id} pattern={pattern} />)}
+          </div>
+        </section>
+
+        <section className="patterns-page-section" aria-labelledby="analysis-title">
+          <div className="patterns-page-section-heading">
+            <div>
+              <p className="section-eyebrow">DETERMINISTIC OBSERVATIONS</p>
+              <h2 id="analysis-title">Meals around positive experiment results</h2>
+            </div>
+            <span>{analysis ? `${observations.length} observations` : ""}</span>
+          </div>
+          <div className="watch-grid">
+            {analysisLoading && <p>Checking your experiment and meal history...</p>}
+            {analysisError && <p>We couldn&apos;t load pattern analysis right now.</p>}
+            {!analysisLoading && !analysisError && analysis && !analysis.enough_data_for_pattern && (
+              <p>
+                Not enough completed experiments with recorded energy changes yet.
+                At least {analysis.minimum_positive_experiments} experiments with
+                positive energy changes are needed before repeated meal observations
+                can be shown.
+              </p>
+            )}
+            {!analysisLoading && !analysisError && analysis?.enough_data_for_pattern && observations.length === 0 && (
+              <p>No repeated meal observations were found in the analyzed experiment windows yet.</p>
+            )}
+            {!analysisLoading && !analysisError && observations.map((observation) => {
+              const featureLabel = observation.feature_type === "meal_type"
+                ? "Meal type"
+                : "Meal";
+
+              return (
+                <article className="watch-card watch-card-meals" key={`${observation.feature_type}-${observation.feature_value}`}>
+                  <span className="watch-symbol" aria-hidden="true">◌</span>
+                  <h3>{featureLabel}: {observation.feature_value}</h3>
+                  <p>
+                    Logged during the analysis window for {observation.positive_experiments_with_feature} of {observation.positive_experiments_analyzed} completed experiments with a positive recorded energy change.
+                  </p>
+                  <p>This is a co-occurrence in your records and does not show that the meal caused an energy change.</p>
+                </article>
+              );
+            })}
           </div>
         </section>
 

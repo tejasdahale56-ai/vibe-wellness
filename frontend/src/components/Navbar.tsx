@@ -23,7 +23,7 @@ export default function Navbar({ variant = "landing", activePage }: NavbarProps)
             Patterns
           </Link>
         </div>
-        <div className="dashboard-user"><span className="user-avatar" aria-hidden="true">A</span><span>Alex</span></div>
+        <div className="dashboard-user"><span className="user-avatar" aria-hidden="true">•</span><span>Your account</span></div>
       </nav>
     );
   }

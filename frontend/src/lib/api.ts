@@ -87,6 +87,8 @@ type ApiExperiment = {
   reflection?: string | null;
   completed_at?: string | null;
   pattern_saved: boolean;
+  category?: "sleep" | "meals" | "movement" | null;
+  type?: string | null;
 };
 
 type ApiPattern = {
@@ -128,6 +130,27 @@ export type AnalyticsSummary = {
       comparable_days: number;
     };
   };
+};
+
+export type PatternAnalysisObservation = {
+  kind: string;
+  feature_type: string;
+  feature_value: string;
+  positive_experiments_with_feature: number;
+  positive_experiments_analyzed: number;
+  repetition_rate: number;
+  window_rule: string;
+  causal_claim: boolean;
+};
+
+export type PatternAnalysisResponse = {
+  completed_experiments: number;
+  measurable_completed_experiments: number;
+  positive_energy_experiments: number;
+  positive_experiments_analyzed: number;
+  enough_data_for_pattern: boolean;
+  minimum_positive_experiments: number;
+  observations: PatternAnalysisObservation[];
 };
 
 function mapDashboard(
@@ -200,6 +223,8 @@ function mapExperiment(
     completedAt:
       data.completed_at ?? undefined,
     patternSaved: data.pattern_saved,
+    category: data.category ?? undefined,
+    type: data.type ?? undefined,
   };
 }
 
@@ -235,15 +260,38 @@ function mapInsight(data: ApiInsight): Insight {
 
 export async function getDashboardFromApi(): Promise<DashboardData> {
   const data = await request<ApiDashboardResponse>(
-    "/api/dashboard?user_id=1",
+    "/api/dashboard",
   );
 
   return mapDashboard(data);
 }
 
+export async function createBiometricFromApi(biometric: {
+  recordedAt: string;
+  sleepMinutes: number;
+  steps: number;
+  restingHeartRateBpm: number;
+  hrvMilliseconds: number;
+  energyScore: number;
+  activeMinutes: number;
+}): Promise<void> {
+  await request("/api/biometrics", {
+    method: "POST",
+    body: JSON.stringify({
+      recorded_at: biometric.recordedAt,
+      sleep_minutes: biometric.sleepMinutes,
+      steps: biometric.steps,
+      resting_heart_rate_bpm: biometric.restingHeartRateBpm,
+      hrv_milliseconds: biometric.hrvMilliseconds,
+      energy_score: biometric.energyScore,
+      active_minutes: biometric.activeMinutes,
+    }),
+  });
+}
+
 export async function getMealsFromApi(): Promise<Meal[]> {
   const data = await request<ApiMeal[]>(
-    "/api/meals?user_id=1",
+    "/api/meals",
   );
 
   return data.map(mapMeal);
@@ -252,7 +300,7 @@ export async function getMealsFromApi(): Promise<Meal[]> {
 export async function createMealFromApi(
   meal: Omit<Meal, "id">,
 ): Promise<Meal> {
-  const data = await request<ApiMeal>("/api/meals?user_id=1", {
+  const data = await request<ApiMeal>("/api/meals", {
     method: "POST",
     body: JSON.stringify({
       name: meal.name,
@@ -269,7 +317,7 @@ export async function createMealFromApi(
 
 export async function getExperimentsFromApi(): Promise<Experiment[]> {
   const data = await request<ApiExperiment[]>(
-    "/api/experiments?user_id=1",
+    "/api/experiments",
   );
 
   return data.map(mapExperiment);
@@ -279,7 +327,7 @@ export async function getExperimentFromApi(
   experimentId: Experiment["id"],
 ): Promise<Experiment> {
   const data = await request<ApiExperiment>(
-    `/api/experiments/${encodeURIComponent(experimentId)}?user_id=1`,
+    `/api/experiments/${encodeURIComponent(experimentId)}`,
   );
 
   return mapExperiment(data);
@@ -288,7 +336,7 @@ export async function getExperimentFromApi(
 export async function createExperimentFromApi(
   experiment: Omit<Experiment, "id">,
 ): Promise<Experiment> {
-  const data = await request<ApiExperiment>("/api/experiments?user_id=1", {
+  const data = await request<ApiExperiment>("/api/experiments", {
     method: "POST",
     body: JSON.stringify({
       title: experiment.title,
@@ -319,7 +367,6 @@ export async function completeExperimentFromApi(
   const params = new URLSearchParams({
     self_reported_energy: String(selfReportedEnergy),
     reflection,
-    user_id: "1",
   });
   const data = await request<ApiExperiment>(
     `/api/experiments/${encodeURIComponent(experimentId)}/complete?${params}`,
@@ -331,16 +378,22 @@ export async function completeExperimentFromApi(
 
 export async function getPatternsFromApi(): Promise<Pattern[]> {
   const data = await request<ApiPattern[]>(
-    "/api/patterns?user_id=1",
+    "/api/patterns",
   );
 
   return data.map(mapPattern);
 }
 
+export async function getPatternAnalysisFromApi(): Promise<PatternAnalysisResponse> {
+  return request<PatternAnalysisResponse>(
+    "/api/patterns/analysis",
+  );
+}
+
 export async function createPatternFromApi(
   pattern: Omit<Pattern, "id">,
 ): Promise<Pattern> {
-  const data = await request<ApiPattern>("/api/patterns?user_id=1", {
+  const data = await request<ApiPattern>("/api/patterns", {
     method: "POST",
     body: JSON.stringify({
       title: pattern.title,
@@ -356,7 +409,7 @@ export async function createPatternFromApi(
 
 export async function getTodayInsightFromApi(): Promise<Insight> {
   const data = await request<ApiInsight>(
-    "/api/insights/today?user_id=1",
+    "/api/insights/today",
   );
 
   return mapInsight(data);
@@ -367,7 +420,7 @@ export async function sendChatMessage(
 ): Promise<string> {
   const data = await request<ApiChatResponse>("/api/chat", {
     method: "POST",
-    body: JSON.stringify({ messages, user_id: 1 }),
+    body: JSON.stringify({ messages }),
   });
 
   return data.message;
@@ -375,6 +428,6 @@ export async function sendChatMessage(
 
 export async function getAnalyticsSummaryFromApi(): Promise<AnalyticsSummary> {
   return request<AnalyticsSummary>(
-    "/api/analytics/summary?user_id=1",
+    "/api/analytics/summary",
   );
 }

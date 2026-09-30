@@ -31,6 +31,9 @@ export default function ExperimentResultView({
     async function loadExperiment() {
       try {
         const experiment = await getExperimentFromApi(id);
+        if (experiment.id !== id || experiment.status !== "completed") {
+          throw new Error("The requested experiment is not completed.");
+        }
         if (isMounted) setResult(experiment);
       } catch (err) {
         console.error("Failed to load experiment result:", err);
@@ -68,6 +71,11 @@ export default function ExperimentResultView({
     : "Not recorded";
 
   async function handleSavePattern() {
+    const supportedCategories = ["sleep", "meals", "movement"] as const;
+    const categoryCandidate = experiment.category ?? experiment.type;
+    const category = supportedCategories.find(
+      (supportedCategory) => supportedCategory === categoryCandidate,
+    ) ?? "meals";
     const energyDetail = currentEnergy !== undefined && baselineEnergy !== undefined
       ? `Recorded energy was ${currentEnergy.toFixed(1)} / 10 after the experiment and ${baselineEnergy.toFixed(1)} / 10 in the recent-history baseline.`
       : "This completed experiment adds one observation to your personal history.";
@@ -78,7 +86,7 @@ export default function ExperimentResultView({
       await createPatternFromApi({
         title: `${experiment.title} observation`,
         description: `An observation from the completed "${experiment.title}" experiment. ${energyDetail}`,
-        category: "movement",
+        category,
         observationCount: 1,
         supportingDetail: experiment.reflection?.trim() || `Completed ${completedAt}.`,
       });

@@ -59,6 +59,8 @@ export type Experiment = {
   reflection?: string;
   completedAt?: string;
   patternSaved?: boolean;
+  category?: "sleep" | "meals" | "movement";
+  type?: string;
 };
 
 export type Pattern = {

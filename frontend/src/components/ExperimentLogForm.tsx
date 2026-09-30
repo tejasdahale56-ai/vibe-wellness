@@ -34,13 +34,13 @@ export default function ExperimentLogForm() {
 
     setIsLoading(true);
     try {
-      await createExperimentFromApi({
+      const experiment = await createExperimentFromApi({
         ...formData,
         progressPercent: 0,
         status: "planned",
         statusLabel: "Planned",
       });
-      router.push("/experiment");
+      router.push(`/experiment?experiment_id=${encodeURIComponent(experiment.id)}`);
     } catch (err) {
       console.error("Failed to create experiment:", err);
       alert("Failed to create experiment. Please try again.");
