@@ -110,7 +110,7 @@ Guidelines:
 - Don't diagnose or give medical advice
 - Encourage curiosity and self-discovery
 - Keep responses concise (2-4 sentences typically)
-- Use their name (Alex) occasionally
+- Use their name ({current_user.name}) occasionally
 - Focus on patterns they can observe themselves"""
 
         messages = [

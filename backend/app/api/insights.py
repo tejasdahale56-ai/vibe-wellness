@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from ..analytics.patterns import analyze_meal_experiment_patterns
 from ..analytics.experiments import (
     MIN_EXPERIMENTS_FOR_PATTERN,
     get_completed_experiments,
@@ -39,6 +40,56 @@ def get_today_insight(
 
     experiments = get_completed_experiments(db, current_user.id)
     experiment_summary = summarize_experiment_energy(experiments)
+    pattern_analysis = analyze_meal_experiment_patterns(
+        db=db,
+        user_id=current_user.id,
+    )
+
+    valid_observations = [
+        observation
+        for observation in pattern_analysis["observations"]
+        if observation["causal_claim"] is False
+        and observation["positive_experiments_with_feature"] >= 2
+    ]
+    if pattern_analysis["enough_data_for_pattern"] and valid_observations:
+        observation = valid_observations[0]
+        feature_label = (
+            "meal type"
+            if observation["feature_type"] == "meal_type"
+            else "meal"
+        )
+        return {
+            "id": (
+                f"pattern-{observation['feature_type']}-"
+                f"{observation['feature_value']}"
+            ),
+            "date_label": None,
+            "heading": "Personal pattern observation",
+            "score": None,
+            "title": f"Repeated {feature_label} observation",
+            "summary": (
+                f"The {feature_label} '{observation['feature_value']}' was "
+                f"logged before {observation['positive_experiments_with_feature']} "
+                "of the "
+                f"{observation['positive_experiments_analyzed']} "
+                "analyzed experiments with positive energy change."
+            ),
+            "context": (
+                "This is an observational co-occurrence in your records; it "
+                "does not show that the meal caused the energy change."
+            ),
+            "method_note": (
+                "The analysis used this user's saved meals logged during the "
+                "duration_days before completion of their own completed "
+                "experiments."
+            ),
+            "comparison": {
+                "comparable_days": 0,
+                "average_afternoon_energy": 0.0,
+                "average_experiment_energy_change": None,
+            },
+            "category": "general",
+        }
 
     if experiment_summary["enough_data_for_pattern"]:
         latest_experiment = experiments[-1]
@@ -75,7 +126,7 @@ def get_today_insight(
                 "average_afternoon_energy": 0.0,
                 "average_experiment_energy_change": average_change,
             },
-            "category": "experiment",
+            "category": "general",
         }
 
     if len(biometrics) >= MIN_BIOMETRIC_OBSERVATIONS_FOR_INSIGHT:

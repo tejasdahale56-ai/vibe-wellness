@@ -53,12 +53,12 @@ def calculate_baseline(
     if not biometrics:
         return {
             "days": 0,
-            "average_sleep_minutes": 0.0,
-            "average_steps": 0.0,
-            "average_resting_heart_rate_bpm": 0.0,
-            "average_hrv_milliseconds": 0.0,
-            "average_energy_score": 0.0,
-            "average_active_minutes": 0.0,
+            "average_sleep_minutes": None,
+            "average_steps": None,
+            "average_resting_heart_rate_bpm": None,
+            "average_hrv_milliseconds": None,
+            "average_energy_score": None,
+            "average_active_minutes": None,
         }
 
     return {
@@ -119,9 +119,9 @@ def compare_sleep_and_energy(
         return {
             "low_sleep_days": 0,
             "normal_sleep_days": 0,
-            "low_sleep_average_energy": 0.0,
-            "normal_sleep_average_energy": 0.0,
-            "difference": 0.0,
+            "low_sleep_average_energy": None,
+            "normal_sleep_average_energy": None,
+            "difference": None,
         }
 
     average_sleep = mean(
@@ -140,12 +140,16 @@ def compare_sleep_and_energy(
         if item.sleep_minutes >= average_sleep
     ]
 
-    low_sleep_energy = average(
-        [item.energy_score for item in low_sleep_days]
+    low_sleep_energy = (
+        average([item.energy_score for item in low_sleep_days])
+        if low_sleep_days
+        else None
     )
 
-    normal_sleep_energy = average(
-        [item.energy_score for item in normal_sleep_days]
+    normal_sleep_energy = (
+        average([item.energy_score for item in normal_sleep_days])
+        if normal_sleep_days
+        else None
     )
 
     return {
@@ -153,9 +157,11 @@ def compare_sleep_and_energy(
         "normal_sleep_days": len(normal_sleep_days),
         "low_sleep_average_energy": low_sleep_energy,
         "normal_sleep_average_energy": normal_sleep_energy,
-        "difference": round(
-            normal_sleep_energy - low_sleep_energy,
-            2,
+        "difference": (
+            round(normal_sleep_energy - low_sleep_energy, 2)
+            if low_sleep_energy is not None
+            and normal_sleep_energy is not None
+            else None
         ),
     }
 
@@ -238,7 +244,7 @@ def build_insight(
             ),
             "comparison": {
                 "comparable_days": 0,
-                "average_afternoon_energy": 0.0,
+                "average_afternoon_energy": None,
             },
             "category": "general",
         }
@@ -274,6 +280,7 @@ def build_insight(
     # Build the main insight.
     if (
         sleep_comparison["low_sleep_days"] >= 2
+        and sleep_comparison["difference"] is not None
         and sleep_comparison["difference"] > 0.5
     ):
         title = "Shorter-sleep days have coincided with lower energy."

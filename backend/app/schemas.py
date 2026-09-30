@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -64,7 +64,7 @@ class ExperimentBase(BaseModel):
     context: Optional[str] = None
     duration_days: int = Field(gt=0)
     progress_percent: int = Field(default=0, ge=0, le=100)
-    status: str = "planned"
+    status: Literal["planned", "active", "completed"] = "planned"
     status_label: str = "Planned"
     self_reported_energy: Optional[float] = Field(
         default=None,
@@ -114,7 +114,7 @@ class ExperimentEnergySummary(BaseModel):
 class PatternBase(BaseModel):
     title: str
     description: str
-    category: str
+    category: Literal["sleep", "meals", "movement"]
     observation_count: int = Field(default=0, ge=0)
     supporting_detail: str
 
@@ -128,6 +128,27 @@ class PatternResponse(PatternBase):
     user_id: int
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class PatternObservation(BaseModel):
+    kind: str
+    feature_type: str
+    feature_value: str
+    positive_experiments_with_feature: int = Field(ge=0)
+    positive_experiments_analyzed: int = Field(ge=0)
+    repetition_rate: float = Field(ge=0, le=1)
+    window_rule: str
+    causal_claim: bool
+
+
+class PatternAnalysisResponse(BaseModel):
+    completed_experiments: int = Field(ge=0)
+    measurable_completed_experiments: int = Field(ge=0)
+    positive_energy_experiments: int = Field(ge=0)
+    positive_experiments_analyzed: int = Field(ge=0)
+    enough_data_for_pattern: bool
+    minimum_positive_experiments: int = Field(gt=0)
+    observations: list[PatternObservation]
 
 
 # -------------------------
@@ -148,7 +169,7 @@ class UserResponse(BaseModel):
 
 class InsightComparison(BaseModel):
     comparable_days: int
-    average_afternoon_energy: float
+    average_afternoon_energy: Optional[float] = None
     average_experiment_energy_change: Optional[float] = None
 
 
@@ -164,7 +185,7 @@ class InsightResponse(BaseModel):
 
     comparison: InsightComparison
 
-    category: str
+    category: Literal["sleep", "movement", "nutrition", "mood", "general"]
 
     model_config = ConfigDict(from_attributes=True)
 
