@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import Biometric
+from ..current_user import get_current_user
+from ..models import Biometric, User
 from ..schemas import BiometricCreate, BiometricResponse
 
 
@@ -17,12 +18,12 @@ router = APIRouter(
     response_model=list[BiometricResponse],
 )
 def get_biometrics(
-    user_id: int = 1,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     return (
         db.query(Biometric)
-        .filter(Biometric.user_id == user_id)
+        .filter(Biometric.user_id == current_user.id)
         .order_by(Biometric.recorded_at.desc())
         .all()
     )
@@ -34,11 +35,11 @@ def get_biometrics(
 )
 def create_biometric(
     biometric: BiometricCreate,
-    user_id: int = 1,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     new_biometric = Biometric(
-        user_id=user_id,
+        user_id=current_user.id,
         **biometric.model_dump(),
     )
 

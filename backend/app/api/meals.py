@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import Meal
+from ..current_user import get_current_user
+from ..models import Meal, User
 from ..schemas import MealCreate, MealResponse
 
 
@@ -17,12 +18,12 @@ router = APIRouter(
     response_model=list[MealResponse],
 )
 def get_meals(
-    user_id: int = 1,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     return (
         db.query(Meal)
-        .filter(Meal.user_id == user_id)
+        .filter(Meal.user_id == current_user.id)
         .order_by(Meal.logged_at.desc())
         .all()
     )
@@ -34,11 +35,11 @@ def get_meals(
 )
 def create_meal(
     meal: MealCreate,
-    user_id: int = 1,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     new_meal = Meal(
-        user_id=user_id,
+        user_id=current_user.id,
         **meal.model_dump(),
     )
 

@@ -9,7 +9,9 @@ from ..analytics.personal import (
     get_biometric_history,
     get_meal_history,
 )
+from ..current_user import get_current_user
 from ..database import get_db
+from ..models import User
 
 
 router = APIRouter(
@@ -20,17 +22,17 @@ router = APIRouter(
 
 @router.get("/summary")
 def get_analytics_summary(
-    user_id: int = 1,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     biometrics = get_biometric_history(
         db=db,
-        user_id=user_id,
+        user_id=current_user.id,
     )
 
     meals = get_meal_history(
         db=db,
-        user_id=user_id,
+        user_id=current_user.id,
     )
 
     baseline = calculate_baseline(biometrics)
@@ -64,7 +66,7 @@ def get_analytics_summary(
         }
 
     return {
-        "user_id": user_id,
+        "user_id": current_user.id,
         "observations": {
             "biometric_days": len(biometrics),
             "meals_logged": len(meals),

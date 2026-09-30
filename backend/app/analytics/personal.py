@@ -16,7 +16,7 @@ def average(values: list[float]) -> float:
 
 def get_biometric_history(
     db: Session,
-    user_id: int = 1,
+    user_id: int,
 ) -> list[Biometric]:
     """Return biometric history for a user, oldest first."""
 
@@ -30,7 +30,7 @@ def get_biometric_history(
 
 def get_meal_history(
     db: Session,
-    user_id: int = 1,
+    user_id: int,
 ) -> list[Meal]:
     """Return meal history for a user, oldest first."""
 

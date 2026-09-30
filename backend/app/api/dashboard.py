@@ -2,8 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from ..analytics.personal import calculate_baseline
+from ..current_user import get_current_user
 from ..database import get_db
-from ..models import Biometric
+from ..models import Biometric, User
 from ..schemas import DashboardResponse
 
 
@@ -18,12 +19,12 @@ router = APIRouter(
     response_model=DashboardResponse,
 )
 def get_dashboard(
-    user_id: int = 1,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     biometrics = (
         db.query(Biometric)
-        .filter(Biometric.user_id == user_id)
+        .filter(Biometric.user_id == current_user.id)
         .order_by(Biometric.recorded_at.desc())
         .all()
     )

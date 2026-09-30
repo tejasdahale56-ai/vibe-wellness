@@ -105,7 +105,7 @@ class PatternBase(BaseModel):
     title: str
     description: str
     category: str
-    observation_count: int = 0
+    observation_count: int = Field(default=0, ge=0)
     supporting_detail: str
 
 

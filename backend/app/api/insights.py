@@ -1,10 +1,10 @@
-from typing import Optional
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from ..analytics.personal import build_insight as build_deterministic_insight
+from ..current_user import get_current_user
 from ..database import get_db
-from ..models import Biometric, Experiment, Meal
+from ..models import Biometric, Experiment, Meal, User
 from ..schemas import InsightResponse
 
 
@@ -82,7 +82,7 @@ def _fetch_user_records(db: Session, user_id: int) -> list[dict]:
     response_model=InsightResponse,
 )
 def get_today_insight(
-    user_id: int = 1,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     from ..analytics.personal import (
@@ -92,12 +92,12 @@ def get_today_insight(
 
     biometrics = get_biometric_history(
         db=db,
-        user_id=user_id,
+        user_id=current_user.id,
     )
 
     meals = get_meal_history(
         db=db,
-        user_id=user_id,
+        user_id=current_user.id,
     )
 
     return build_deterministic_insight(

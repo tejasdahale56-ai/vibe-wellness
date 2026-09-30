@@ -4,8 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from ..current_user import get_current_user
 from ..database import get_db
-from ..models import Experiment, Meal, Biometric
+from ..models import Biometric, Experiment, Meal, User
 
 
 logger = logging.getLogger(__name__)
@@ -23,7 +24,6 @@ class ChatMessage(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: List[ChatMessage]
-    user_id: int = 1
 
 
 class ChatResponse(BaseModel):
@@ -79,7 +79,11 @@ def _fetch_user_context(db: Session, user_id: int) -> str:
 
 
 @router.post("", response_model=ChatResponse)
-async def chat(request: ChatRequest, db: Session = Depends(get_db)):
+async def chat(
+    request: ChatRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     try:
         from openai import OpenAI
         import os
@@ -93,7 +97,7 @@ async def chat(request: ChatRequest, db: Session = Depends(get_db)):
 
         client = OpenAI(api_key=api_key)
 
-        user_context = _fetch_user_context(db, request.user_id)
+        user_context = _fetch_user_context(db, current_user.id)
 
         system_prompt = f"""You are VIBE, a gentle wellness companion. You help users understand their patterns and experiments without being prescriptive.
 

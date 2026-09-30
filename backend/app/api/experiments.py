@@ -1,11 +1,12 @@
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from ..analytics.personal import calculate_baseline, get_biometric_history
+from ..current_user import get_current_user
 from ..database import get_db
-from ..models import Experiment
+from ..models import Experiment, User
 from ..schemas import ExperimentCreate, ExperimentResponse
 
 
@@ -20,12 +21,12 @@ router = APIRouter(
     response_model=list[ExperimentResponse],
 )
 def get_experiments(
-    user_id: int = 1,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     return (
         db.query(Experiment)
-        .filter(Experiment.user_id == user_id)
+        .filter(Experiment.user_id == current_user.id)
         .order_by(Experiment.id.desc())
         .all()
     )
@@ -37,14 +38,14 @@ def get_experiments(
 )
 def get_experiment(
     experiment_id: int,
-    user_id: int = 1,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     experiment = (
         db.query(Experiment)
         .filter(
             Experiment.id == experiment_id,
-            Experiment.user_id == user_id,
+            Experiment.user_id == current_user.id,
         )
         .first()
     )
@@ -64,11 +65,11 @@ def get_experiment(
 )
 def create_experiment(
     experiment: ExperimentCreate,
-    user_id: int = 1,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     new_experiment = Experiment(
-        user_id=user_id,
+        user_id=current_user.id,
         **experiment.model_dump(),
     )
 
@@ -85,16 +86,16 @@ def create_experiment(
 )
 def complete_experiment(
     experiment_id: int,
-    self_reported_energy: float,
+    self_reported_energy: float = Query(ge=0, le=10),
     reflection: str = "",
-    user_id: int = 1,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     experiment = (
         db.query(Experiment)
         .filter(
             Experiment.id == experiment_id,
-            Experiment.user_id == user_id,
+            Experiment.user_id == current_user.id,
         )
         .first()
     )
@@ -109,7 +110,7 @@ def complete_experiment(
     experiment.reflection = reflection
     experiment.energy_after = self_reported_energy
     if experiment.baseline_energy is None:
-        biometrics = get_biometric_history(db, user_id)
+        biometrics = get_biometric_history(db, current_user.id)
         if biometrics:
             experiment.baseline_energy = calculate_baseline(
                 biometrics
