@@ -32,7 +32,10 @@ export default function Navbar({ variant = "landing", activePage }: NavbarProps)
     <nav className="nav wrap" aria-label="Main navigation">
       <Link className="brand" href="/" aria-label="VIBE home"><span className="brand-mark" aria-hidden="true">v</span>VIBE<span className="brand-period">.</span></Link>
       <div className="nav-links"><a href="#how-it-works">How it works</a><a href="#why-vibe">Our approach</a></div>
-      <Link className="nav-cta" href="/dashboard">Get started <span aria-hidden="true">{"\u2197"}</span></Link>
+      <div className="nav-auth-links">
+        <Link className="nav-login" href="/login">Log in</Link>
+        <Link className="nav-cta" href="/register">Sign up <span aria-hidden="true">{"\u2197"}</span></Link>
+      </div>
     </nav>
   );
 }
