@@ -97,6 +97,16 @@ class ExperimentResponse(ExperimentBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ExperimentEnergySummary(BaseModel):
+    completed_experiments: int = Field(ge=0)
+    analyzed_experiments: int = Field(ge=0)
+    average_energy_change: Optional[float] = None
+    positive_energy_changes: int = Field(ge=0)
+    negative_energy_changes: int = Field(ge=0)
+    enough_data_for_pattern: bool
+    minimum_experiments_for_pattern: int = Field(gt=0)
+
+
 # -------------------------
 # Patterns
 # -------------------------
@@ -139,6 +149,7 @@ class UserResponse(BaseModel):
 class InsightComparison(BaseModel):
     comparable_days: int
     average_afternoon_energy: float
+    average_experiment_energy_change: Optional[float] = None
 
 
 class InsightResponse(BaseModel):

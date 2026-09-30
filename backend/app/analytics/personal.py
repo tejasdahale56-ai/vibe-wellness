@@ -222,7 +222,7 @@ def build_insight(
 
     if not biometrics:
         return {
-            "id": "insight-1",
+            "id": "insight-insufficient-data",
             "date_label": None,
             "heading": "Not enough data yet.",
             "score": None,
@@ -346,7 +346,7 @@ def build_insight(
         category = "general"
 
     return {
-        "id": "insight-1",
+        "id": f"biometric-{current.id}",
         "date_label": current.recorded_at.strftime("%b %d"),
         "heading": "Personal pattern detected",
         "score": round(current.energy_score, 1),

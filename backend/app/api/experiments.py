@@ -4,10 +4,18 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from ..analytics.personal import calculate_baseline, get_biometric_history
+from ..analytics.experiments import (
+    get_completed_experiments,
+    summarize_experiment_energy,
+)
 from ..current_user import get_current_user
 from ..database import get_db
 from ..models import Experiment, User
-from ..schemas import ExperimentCreate, ExperimentResponse
+from ..schemas import (
+    ExperimentCreate,
+    ExperimentEnergySummary,
+    ExperimentResponse,
+)
 
 
 router = APIRouter(
@@ -30,6 +38,18 @@ def get_experiments(
         .order_by(Experiment.id.desc())
         .all()
     )
+
+
+@router.get(
+    "/energy-summary",
+    response_model=ExperimentEnergySummary,
+)
+def get_experiment_energy_summary(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    experiments = get_completed_experiments(db, current_user.id)
+    return summarize_experiment_energy(experiments)
 
 
 @router.get(
