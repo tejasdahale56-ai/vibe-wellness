@@ -10,6 +10,13 @@ import MetricCard from "@/components/MetricCard";
 import Navbar from "@/components/Navbar";
 import PatternCard from "@/components/PatternCard";
 import TodayMeal from "@/components/TodayMeal";
+import {
+  getDashboardData as getDemoDashboard,
+  getExperiments as getDemoExperiments,
+  getInsight as getDemoInsight,
+  getPatterns as getDemoPatterns,
+  getTodayMeal as getDemoMeal,
+} from "@/data/demoData";
 
 import {
   getDashboardFromApi,
@@ -44,15 +51,11 @@ export default function DashboardPage() {
     useState<Meal | null>(null);
 
   const [loading, setLoading] = useState(true);
-  const [error, setError] =
-    useState<string | null>(null);
 
   useEffect(() => {
     async function loadDashboard() {
       try {
         setLoading(true);
-        setError(null);
-
         const [
           dashboardData,
           insightData,
@@ -73,16 +76,12 @@ export default function DashboardPage() {
         setPatterns(patternsData);
         setMeal(mealsData[0] ?? null);
       } catch (err) {
-        console.error(
-          "Failed to load dashboard:",
-          err,
-        );
-
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Something went wrong while loading your dashboard.",
-        );
+        console.warn("Dashboard API unavailable; using demo data.", err);
+        setDashboard(getDemoDashboard());
+        setInsight(getDemoInsight());
+        setExperiment(getDemoExperiments()[0] ?? null);
+        setPatterns(getDemoPatterns());
+        setMeal(getDemoMeal());
       } finally {
         setLoading(false);
       }
@@ -123,22 +122,7 @@ export default function DashboardPage() {
           </section>
         )}
 
-        {!loading && error && (
-          <section
-            className="dashboard-section"
-            aria-live="assertive"
-          >
-            <p>
-              We couldn&apos;t load your wellness
-              data.
-            </p>
-
-            <p>{error}</p>
-          </section>
-        )}
-
         {!loading &&
-          !error &&
           dashboard &&
           insight && (
             <>

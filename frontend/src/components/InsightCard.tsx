@@ -41,7 +41,7 @@ export default function InsightCard({ insight, variant = "default" }: InsightCar
 
   return (
     <div className="insight-summary">
-      <div className="card-topline"><div><span className="card-kicker">YOUR DAILY VIBE</span>{insight.dateLabel && <p className="card-date">{insight.dateLabel}</p>}</div><span className="more-button" aria-hidden="true">\u2026\u2026\u2026</span></div>
+      <div className="card-topline"><div><span className="card-kicker">YOUR DAILY VIBE</span>{insight.dateLabel && <p className="card-date">{insight.dateLabel}</p>}</div><span className="more-button" aria-hidden="true">{"\u2026\u2026\u2026"}</span></div>
       <div className="vibe-score">
         {insight.score !== undefined && <div className="score-ring" aria-label={`Wellness score ${insight.score} out of 100`}><span>{insight.score}</span><small>your rhythm</small></div>}
         <div className="score-copy"><span className="score-label">TODAY&apos;S OUTLOOK</span><strong>{insight.title}</strong><span className="score-note">{insight.summary}</span></div>
