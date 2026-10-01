@@ -70,8 +70,9 @@ def _discover_biometric_patterns(
     for field, label, category in BIOMETRIC_PATTERN_FIELDS:
         comparison = _compare_energy_groups(
             [
-                (float(getattr(record, field)), record.energy_score)
+                (float(getattr(record, field)), float(record.energy_score))
                 for record in biometrics
+                if getattr(record, field) is not None and record.energy_score is not None
             ]
         )
         if comparison is None:
@@ -145,9 +146,10 @@ def _discover_meal_timing_pattern(
     biometrics_by_day = _latest_biometrics_by_day(biometrics)
     meal_minutes_by_day = _latest_meal_minutes_by_day(meals)
     pairs = [
-        (meal_minutes, biometrics_by_day[meal_day + timedelta(days=1)].energy_score)
+        (meal_minutes, float(biometrics_by_day[meal_day + timedelta(days=1)].energy_score))
         for meal_day, meal_minutes in meal_minutes_by_day.items()
         if meal_day + timedelta(days=1) in biometrics_by_day
+        and biometrics_by_day[meal_day + timedelta(days=1)].energy_score is not None
     ]
     comparison = _compare_energy_groups(pairs)
 

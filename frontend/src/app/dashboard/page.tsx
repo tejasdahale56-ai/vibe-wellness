@@ -13,6 +13,7 @@ import TodayMeal from "@/components/TodayMeal";
 
 import {
   getDashboardFromApi,
+  getTodayHealthDataStatus,
   getExperimentsFromApi,
   getMealsFromApi,
   getPersonalBaselineFromApi,
@@ -147,12 +148,21 @@ export default function DashboardPage() {
     useState<PersonalBaseline | null>(null);
   const [baselineLoading, setBaselineLoading] = useState(true);
   const [baselineError, setBaselineError] = useState(false);
+  const [dailyImportReminder, setDailyImportReminder] = useState(false);
   const localDate = useSyncExternalStore(
     subscribeToLocalDate,
     getLocalDate,
     () => null,
   );
   const [weekday, monthDay] = localDate?.split("|") ?? [];
+
+  useEffect(() => {
+    const now = new Date();
+    const localDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    void getTodayHealthDataStatus(localDate)
+      .then((status) => setDailyImportReminder(!status.has_data))
+      .catch((statusError) => console.error("Failed to check today's health data:", statusError));
+  }, []);
 
   useEffect(() => {
     async function loadDashboard() {
@@ -247,6 +257,15 @@ export default function DashboardPage() {
             like so far.
           </p>
         </header>
+
+        {dailyImportReminder && (
+          <section className="dashboard-section" aria-label="Daily data reminder">
+            <p>No health data has been recorded for today yet.</p>
+            <Link className="button button-outline" href="/health-data">
+              Import Daily Data <span aria-hidden="true">→</span>
+            </Link>
+          </section>
+        )}
 
         {loading && (
           <section

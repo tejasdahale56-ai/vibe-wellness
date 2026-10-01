@@ -21,10 +21,9 @@ async function request<T>(
     `${API_BASE_URL}${path}`,
     {
       ...options,
-      headers: {
-        "Content-Type": "application/json",
-        ...(options?.headers || {}),
-      },
+      headers: options?.body instanceof FormData
+        ? options.headers
+        : { "Content-Type": "application/json", ...(options?.headers || {}) },
       credentials: "include",
     },
   );
@@ -56,9 +55,9 @@ export type HealthHistoryEvent = {
   title: string;
   description: string;
   metadata: {
-    sleep_minutes?: number;
-    steps?: number;
-    energy_score?: number;
+    sleep_minutes?: number | null;
+    steps?: number | null;
+    energy_score?: number | null;
     meal_type?: string | null;
     tags?: string[];
     status?: string;
@@ -69,6 +68,25 @@ export type HealthHistoryEvent = {
     goal_type?: string;
   };
 };
+
+export type HealthDataImportResult = {
+  filename: string;
+  days_imported: number;
+  days_skipped_as_duplicates: number;
+  date_range: { start: string; end: string } | null;
+  imported_metrics: string[];
+  warnings: string[];
+};
+
+export async function importHealthDataFromApi(file: File): Promise<HealthDataImportResult> {
+  const form = new FormData();
+  form.append("file", file);
+  return request<HealthDataImportResult>("/api/health-data/import", { method: "POST", body: form });
+}
+
+export async function getTodayHealthDataStatus(localDate: string): Promise<{ local_date: string; has_data: boolean }> {
+  return request<{ local_date: string; has_data: boolean }>(`/api/health-data/today?local_date=${encodeURIComponent(localDate)}`);
+}
 
 export async function signup(
   credentials: { name: string; email: string; password: string },
@@ -105,12 +123,12 @@ type ApiDashboardResponse = {
     id: number;
     user_id: number;
     recorded_at: string;
-    sleep_minutes: number;
-    steps: number;
-    resting_heart_rate_bpm: number;
-    hrv_milliseconds: number;
-    energy_score: number;
-    active_minutes: number;
+    sleep_minutes: number | null;
+    steps: number | null;
+    resting_heart_rate_bpm: number | null;
+    hrv_milliseconds: number | null;
+    energy_score: number | null;
+    active_minutes: number | null;
   };
   metrics: {
     id: string;
@@ -214,7 +232,7 @@ type ApiInsight = {
   method_note?: string | null;
   comparison: {
     comparable_days: number;
-    average_afternoon_energy: number;
+    average_afternoon_energy: number | null;
   };
   category: "sleep" | "movement" | "nutrition" | "mood" | "general";
 };

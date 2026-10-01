@@ -100,6 +100,58 @@ def ensure_schema_compatibility() -> None:
                         )
                     )
 
+    if "biometrics" in table_names:
+        biometric_columns = inspector.get_columns("biometrics")
+        nullable_fields = {
+            "sleep_minutes", "steps", "resting_heart_rate_bpm",
+            "hrv_milliseconds", "energy_score", "active_minutes",
+        }
+        required_migration = nullable_fields.intersection(
+            column["name"] for column in biometric_columns if not column["nullable"]
+        )
+        if required_migration and settings.database_url.startswith("sqlite"):
+            # SQLite cannot directly drop NOT NULL. Rebuild this one table,
+            # preserving every existing row and its indexes.
+            raw_connection = engine.raw_connection()
+            try:
+                cursor = raw_connection.cursor()
+                cursor.execute("PRAGMA foreign_keys=OFF")
+                cursor.execute(
+                    "SELECT sql FROM sqlite_master WHERE type='index' "
+                    "AND tbl_name='biometrics' AND sql IS NOT NULL"
+                )
+                index_sql = [row[0] for row in cursor.fetchall()]
+                cursor.execute(
+                    "CREATE TABLE biometrics_nullable ("
+                    "id INTEGER NOT NULL PRIMARY KEY, user_id INTEGER NOT NULL, "
+                    "recorded_at DATETIME NOT NULL, sleep_minutes INTEGER, "
+                    "steps INTEGER, resting_heart_rate_bpm INTEGER, "
+                    "hrv_milliseconds INTEGER, energy_score FLOAT, "
+                    "active_minutes INTEGER, "
+                    "FOREIGN KEY(user_id) REFERENCES users(id))"
+                )
+                cursor.execute(
+                    "INSERT INTO biometrics_nullable "
+                    "SELECT id, user_id, recorded_at, sleep_minutes, steps, "
+                    "resting_heart_rate_bpm, hrv_milliseconds, energy_score, "
+                    "active_minutes FROM biometrics"
+                )
+                cursor.execute("DROP TABLE biometrics")
+                cursor.execute("ALTER TABLE biometrics_nullable RENAME TO biometrics")
+                for statement in index_sql:
+                    cursor.execute(statement)
+                raw_connection.commit()
+                cursor.execute("PRAGMA foreign_keys=ON")
+            except Exception:
+                raw_connection.rollback()
+                raise
+            finally:
+                raw_connection.close()
+        elif required_migration:
+            with engine.begin() as connection:
+                for field in sorted(required_migration):
+                    connection.execute(text(f"ALTER TABLE biometrics ALTER COLUMN {field} DROP NOT NULL"))
+
 
 def get_db():
     db = SessionLocal()

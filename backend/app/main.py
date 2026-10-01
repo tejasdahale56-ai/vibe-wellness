@@ -16,6 +16,7 @@ from .api.chat import router as chat_router
 from .api.goals import router as goals_router
 from .api.auth import router as auth_router
 from .api.history import router as history_router
+from .api.health_data import router as health_data_router
 
 
 Base.metadata.create_all(bind=engine)
@@ -51,6 +52,7 @@ app.include_router(chat_router)
 app.include_router(goals_router)
 app.include_router(auth_router)
 app.include_router(history_router)
+app.include_router(health_data_router)
 
 
 @app.get("/")

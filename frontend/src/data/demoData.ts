@@ -73,12 +73,12 @@ const demoPatternSummary: PatternSummary = {
 const dashboardData: DashboardData = {
   biometrics: todayBiometrics,
   metrics: [
-    { id: "sleep", label: "Sleep", value: formatDurationMinutes(todayBiometrics.sleepMinutes), description: "A little more rest", icon: "☾", tone: "green" },
-    { id: "resting-heart-rate", label: "Resting HR", value: `${todayBiometrics.restingHeartRateBpm} bpm`, description: "At rest", icon: "♡", tone: "neutral" },
-    { id: "steps", label: "Steps", value: todayBiometrics.steps.toLocaleString("en-US"), description: "Today so far", icon: "↗", tone: "amber" },
-    { id: "hrv", label: "HRV", value: `${todayBiometrics.hrvMilliseconds} ms`, description: "Daily average", icon: "⌁", tone: "green" },
-    { id: "energy", label: "Energy", value: `${todayBiometrics.energyScore.toFixed(1)} / 10`, description: "Your check-in", icon: "✳", tone: "neutral" },
-    { id: "active-minutes", label: "Active minutes", value: `${todayBiometrics.activeMinutes} min`, description: "Movement today", icon: "◷", tone: "amber" },
+    { id: "sleep", label: "Sleep", value: todayBiometrics.sleepMinutes === null ? "—" : formatDurationMinutes(todayBiometrics.sleepMinutes), description: "A little more rest", icon: "☾", tone: "green" },
+    { id: "resting-heart-rate", label: "Resting HR", value: todayBiometrics.restingHeartRateBpm === null ? "—" : `${todayBiometrics.restingHeartRateBpm} bpm`, description: "At rest", icon: "♡", tone: "neutral" },
+    { id: "steps", label: "Steps", value: todayBiometrics.steps?.toLocaleString("en-US") ?? "—", description: "Today so far", icon: "↗", tone: "amber" },
+    { id: "hrv", label: "HRV", value: todayBiometrics.hrvMilliseconds === null ? "—" : `${todayBiometrics.hrvMilliseconds} ms`, description: "Daily average", icon: "⌁", tone: "green" },
+    { id: "energy", label: "Energy", value: todayBiometrics.energyScore === null ? "—" : `${todayBiometrics.energyScore.toFixed(1)} / 10`, description: "Your check-in", icon: "✳", tone: "neutral" },
+    { id: "active-minutes", label: "Active minutes", value: todayBiometrics.activeMinutes === null ? "—" : `${todayBiometrics.activeMinutes} min`, description: "Movement today", icon: "◷", tone: "amber" },
   ],
 };
 

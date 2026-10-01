@@ -41,88 +41,72 @@ def get_dashboard(
         list(reversed(biometrics))
     )
 
-    sleep_change = round(
-        current.sleep_minutes
-        - baseline["average_sleep_minutes"],
-        1,
-    )
+    def change(value, average):
+        return round(value - average, 1) if value is not None and average is not None else None
 
-    steps_change = round(
-        current.steps
-        - baseline["average_steps"],
-        1,
-    )
-
-    energy_change = round(
-        current.energy_score
-        - baseline["average_energy_score"],
-        1,
-    )
-
-    active_change = round(
-        current.active_minutes
-        - baseline["average_active_minutes"],
-        1,
-    )
+    sleep_change = change(current.sleep_minutes, baseline["average_sleep_minutes"])
+    steps_change = change(current.steps, baseline["average_steps"])
+    energy_change = change(current.energy_score, baseline["average_energy_score"])
+    active_change = change(current.active_minutes, baseline["average_active_minutes"])
 
     metrics = [
         {
             "id": "sleep",
             "label": "Sleep",
-            "value": f"{round(current.sleep_minutes / 60, 1)}h",
+            "value": f"{round(current.sleep_minutes / 60, 1)}h" if current.sleep_minutes is not None else "—",
             "description": (
-                f"{'+' if sleep_change >= 0 else ''}"
-                f"{sleep_change} min vs your baseline"
+                f"{'+' if sleep_change is not None and sleep_change >= 0 else ''}"
+                f"{sleep_change} min vs your baseline" if sleep_change is not None else "Baseline unavailable"
             ),
             "icon": "moon",
             "tone": (
                 "green"
-                if sleep_change >= 0
+                if sleep_change is not None and sleep_change >= 0
                 else "amber"
             ),
         },
         {
             "id": "steps",
             "label": "Steps",
-            "value": f"{current.steps:,}",
+            "value": f"{current.steps:,}" if current.steps is not None else "—",
             "description": (
-                f"{'+' if steps_change >= 0 else ''}"
-                f"{int(steps_change):,} vs your baseline"
+                f"{'+' if steps_change is not None and steps_change >= 0 else ''}"
+                f"{int(steps_change):,} vs your baseline" if steps_change is not None else "Baseline unavailable"
             ),
             "icon": "footprints",
             "tone": (
                 "green"
-                if steps_change >= 0
+                if steps_change is not None and steps_change >= 0
                 else "amber"
             ),
         },
         {
             "id": "energy",
             "label": "Energy",
-            "value": f"{current.energy_score:.1f}/10",
+            "value": f"{current.energy_score:.1f}/10" if current.energy_score is not None else "—",
             "description": (
-                f"{'+' if energy_change >= 0 else ''}"
-                f"{energy_change:.1f} vs your baseline"
+                f"{'+' if energy_change is not None and energy_change >= 0 else ''}"
+                f"{energy_change:.1f} vs your baseline" if energy_change is not None else "Not provided in this data"
             ),
             "icon": "bolt",
             "tone": (
                 "green"
-                if energy_change >= 0
+                if energy_change is not None and energy_change >= 0
                 else "amber"
             ),
         },
         {
             "id": "active",
             "label": "Active",
-            "value": f"{current.active_minutes} min",
+            "value": f"{current.active_minutes} min" if current.active_minutes is not None else "—",
             "description": (
-                f"{'+' if active_change >= 0 else ''}"
-                f"{active_change:.0f} min vs your baseline"
+                f"{'+' if active_change is not None and active_change >= 0 else ''}"
+                f"{active_change:.0f} min vs your baseline" if active_change is not None else "Baseline unavailable"
             ),
             "icon": "activity",
             "tone": (
                 "green"
-                if active_change >= 0
+                if active_change is not None and active_change >= 0
                 else "amber"
             ),
         },

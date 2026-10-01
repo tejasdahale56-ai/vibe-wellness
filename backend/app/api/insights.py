@@ -85,7 +85,7 @@ def get_today_insight(
             ),
             "comparison": {
                 "comparable_days": 0,
-                "average_afternoon_energy": 0.0,
+                "average_afternoon_energy": None,
                 "average_experiment_energy_change": None,
             },
             "category": "general",
@@ -123,7 +123,7 @@ def get_today_insight(
             ),
             "comparison": {
                 "comparable_days": 0,
-                "average_afternoon_energy": 0.0,
+                "average_afternoon_energy": None,
                 "average_experiment_energy_change": average_change,
             },
             "category": "general",
@@ -149,7 +149,7 @@ def get_today_insight(
         ),
         "comparison": {
             "comparable_days": 0,
-            "average_afternoon_energy": 0.0,
+            "average_afternoon_energy": None,
             "average_experiment_energy_change": None,
         },
         "category": "general",
