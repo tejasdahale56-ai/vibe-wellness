@@ -6,6 +6,7 @@ import type {
   Pattern,
   ChatMessage,
 } from "@/types";
+import { firebaseAuth } from "@/lib/firebase";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -15,12 +16,14 @@ async function request<T>(
   path: string,
   options?: RequestInit,
 ): Promise<T> {
+  const token = await firebaseAuth?.currentUser?.getIdToken();
   const response = await fetch(
     `${API_BASE_URL}${path}`,
     {
       ...options,
       headers: {
         "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(options?.headers || {}),
       },
     },
@@ -264,6 +267,12 @@ export async function getDashboardFromApi(): Promise<DashboardData> {
   );
 
   return mapDashboard(data);
+}
+
+export async function syncAccountFromApi(): Promise<void> {
+  await request<{ id: number; name: string; email: string | null }>("/api/auth/me", {
+    method: "POST",
+  });
 }
 
 export async function createBiometricFromApi(biometric: {

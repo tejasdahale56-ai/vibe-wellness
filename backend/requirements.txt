@@ -3,5 +3,6 @@ uvicorn[standard]
 sqlalchemy
 pydantic-settings
 psycopg2-binary
+firebase-admin
 openai
 python-dotenv

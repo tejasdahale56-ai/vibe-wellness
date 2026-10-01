@@ -27,6 +27,13 @@ class User(Base):
         nullable=True,
     )
 
+    firebase_uid: Mapped[Optional[str]] = mapped_column(
+        String(128),
+        unique=True,
+        index=True,
+        nullable=True,
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=datetime.utcnow,

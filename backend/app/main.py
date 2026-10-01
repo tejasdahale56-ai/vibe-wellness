@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
-from .database import Base, engine
+from .database import Base, engine, ensure_firebase_uid_schema
 from . import models
 
 from .api.biometrics import router as biometrics_router
@@ -13,9 +13,11 @@ from .api.insights import router as insights_router
 from .api.dashboard import router as dashboard_router
 from .api.analytics import router as analytics_router
 from .api.chat import router as chat_router
+from .api.auth import router as auth_router
 
 
 Base.metadata.create_all(bind=engine)
+ensure_firebase_uid_schema()
 
 
 app = FastAPI(
@@ -44,6 +46,7 @@ app.include_router(insights_router)
 app.include_router(dashboard_router)
 app.include_router(analytics_router)
 app.include_router(chat_router)
+app.include_router(auth_router)
 
 
 @app.get("/")

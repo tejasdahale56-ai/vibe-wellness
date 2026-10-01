@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, inspect, text
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 from .config import settings
@@ -38,6 +38,27 @@ SessionLocal = sessionmaker(
 
 class Base(DeclarativeBase):
     pass
+
+
+def ensure_firebase_uid_schema():
+    """Add the Firebase identity column to databases created before auth."""
+    inspector = inspect(engine)
+    if "users" not in inspector.get_table_names():
+        return
+
+    if "firebase_uid" not in {
+        column["name"] for column in inspector.get_columns("users")
+    }:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE users ADD COLUMN firebase_uid VARCHAR(128)"))
+
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS "
+                "ix_users_firebase_uid ON users (firebase_uid)"
+            )
+        )
 
 
 def get_db():

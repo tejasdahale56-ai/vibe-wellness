@@ -1,6 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { signOut } from "firebase/auth";
+import { firebaseAuth } from "@/lib/firebase";
 import { Sun, List } from "lucide-react";
 
 type NavbarProps = {
@@ -9,6 +12,13 @@ type NavbarProps = {
 };
 
 export default function Navbar({ variant = "landing", activePage }: NavbarProps) {
+  const router = useRouter();
+
+  async function handleLogout() {
+    if (firebaseAuth) await signOut(firebaseAuth);
+    router.replace("/login");
+  }
+
   if (variant === "product") {
     return (
       <nav className="nav wrap dashboard-nav" aria-label="Main navigation">
@@ -23,7 +33,7 @@ export default function Navbar({ variant = "landing", activePage }: NavbarProps)
             Patterns
           </Link>
         </div>
-        <div className="dashboard-user"><span className="user-avatar" aria-hidden="true">•</span><span>Your account</span></div>
+        <div className="dashboard-user"><span className="user-avatar" aria-hidden="true">•</span><span className="dashboard-account-label">Your account</span><button className="dashboard-logout" type="button" onClick={handleLogout}>Log out</button></div>
       </nav>
     );
   }
