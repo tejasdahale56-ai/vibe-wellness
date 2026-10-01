@@ -87,7 +87,7 @@ export default function InsightPage() {
           </div>
         </section>}
 
-        {!loading && !error && insight && dashboard && comparableEnergy !== undefined && currentEnergy !== undefined && <section className="insight-page-section comparison-section" aria-labelledby="comparison-heading">
+        {!loading && !error && insight && dashboard && comparableEnergy != null && currentEnergy != null && <section className="insight-page-section comparison-section" aria-labelledby="comparison-heading">
           <div className="insight-section-heading">
             <div>
               <p className="section-eyebrow">A SIMPLE COMPARISON</p>

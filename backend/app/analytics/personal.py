@@ -6,10 +6,10 @@ from sqlalchemy.orm import Session
 from ..models import Biometric, Meal
 
 
-def average(values: list[float]) -> float:
-    """Return a rounded average, or 0 when there is no data."""
+def average(values: list[float]) -> Optional[float]:
+    """Return a rounded average, or None when there is no measurement."""
     if not values:
-        return 0.0
+        return None
 
     return round(mean(values), 2)
 
@@ -64,25 +64,26 @@ def calculate_baseline(
     return {
         "days": len(biometrics),
         "average_sleep_minutes": average(
-            [float(item.sleep_minutes) for item in biometrics]
+            [float(item.sleep_minutes) for item in biometrics if item.sleep_minutes is not None]
         ),
         "average_steps": average(
-            [float(item.steps) for item in biometrics]
+            [float(item.steps) for item in biometrics if item.steps is not None]
         ),
         "average_resting_heart_rate_bpm": average(
             [
                 float(item.resting_heart_rate_bpm)
                 for item in biometrics
+                if item.resting_heart_rate_bpm is not None
             ]
         ),
         "average_hrv_milliseconds": average(
-            [float(item.hrv_milliseconds) for item in biometrics]
+            [float(item.hrv_milliseconds) for item in biometrics if item.hrv_milliseconds is not None]
         ),
         "average_energy_score": average(
-            [float(item.energy_score) for item in biometrics]
+            [float(item.energy_score) for item in biometrics if item.energy_score is not None]
         ),
         "average_active_minutes": average(
-            [float(item.active_minutes) for item in biometrics]
+            [float(item.active_minutes) for item in biometrics if item.active_minutes is not None]
         ),
     }
 
@@ -100,7 +101,7 @@ def find_similar_sleep_days(
     return [
         item
         for item in biometrics
-        if abs(item.sleep_minutes - target_sleep_minutes)
+        if item.sleep_minutes is not None and abs(item.sleep_minutes - target_sleep_minutes)
         <= tolerance_minutes
     ]
 
@@ -115,7 +116,8 @@ def compare_sleep_and_energy(
     establish causation.
     """
 
-    if not biometrics:
+    comparable = [item for item in biometrics if item.sleep_minutes is not None and item.energy_score is not None]
+    if len(comparable) < 3:
         return {
             "low_sleep_days": 0,
             "normal_sleep_days": 0,
@@ -125,29 +127,29 @@ def compare_sleep_and_energy(
         }
 
     average_sleep = mean(
-        item.sleep_minutes for item in biometrics
+        item.sleep_minutes for item in comparable
     )
 
     low_sleep_days = [
         item
-        for item in biometrics
+        for item in comparable
         if item.sleep_minutes < average_sleep
     ]
 
     normal_sleep_days = [
         item
-        for item in biometrics
+        for item in comparable
         if item.sleep_minutes >= average_sleep
     ]
 
     low_sleep_energy = (
-        average([item.energy_score for item in low_sleep_days])
+        average([item.energy_score for item in low_sleep_days if item.energy_score is not None])
         if low_sleep_days
         else None
     )
 
     normal_sleep_energy = (
-        average([item.energy_score for item in normal_sleep_days])
+        average([item.energy_score for item in normal_sleep_days if item.energy_score is not None])
         if normal_sleep_days
         else None
     )
@@ -180,37 +182,16 @@ def calculate_current_deviation(
     baseline = calculate_baseline(biometrics)
     current = biometrics[-1]
 
+    def deviation(value, average_value):
+        return round(value - average_value, 2) if value is not None and average_value is not None else None
+
     return {
-        "sleep_minutes": round(
-            current.sleep_minutes
-            - baseline["average_sleep_minutes"],
-            2,
-        ),
-        "steps": round(
-            current.steps
-            - baseline["average_steps"],
-            2,
-        ),
-        "resting_heart_rate_bpm": round(
-            current.resting_heart_rate_bpm
-            - baseline["average_resting_heart_rate_bpm"],
-            2,
-        ),
-        "hrv_milliseconds": round(
-            current.hrv_milliseconds
-            - baseline["average_hrv_milliseconds"],
-            2,
-        ),
-        "energy_score": round(
-            current.energy_score
-            - baseline["average_energy_score"],
-            2,
-        ),
-        "active_minutes": round(
-            current.active_minutes
-            - baseline["average_active_minutes"],
-            2,
-        ),
+        "sleep_minutes": deviation(current.sleep_minutes, baseline["average_sleep_minutes"]),
+        "steps": deviation(current.steps, baseline["average_steps"]),
+        "resting_heart_rate_bpm": deviation(current.resting_heart_rate_bpm, baseline["average_resting_heart_rate_bpm"]),
+        "hrv_milliseconds": deviation(current.hrv_milliseconds, baseline["average_hrv_milliseconds"]),
+        "energy_score": deviation(current.energy_score, baseline["average_energy_score"]),
+        "active_minutes": deviation(current.active_minutes, baseline["average_active_minutes"]),
     }
 
 
@@ -226,7 +207,10 @@ def build_insight(
     but the analytics layer itself does not use an LLM.
     """
 
-    if not biometrics:
+    # Energy analysis needs observed values; wearable rows without energy still
+    # contribute to non-energy baselines and are never treated as zero energy.
+    energy_biometrics = [item for item in biometrics if item.energy_score is not None]
+    if len(energy_biometrics) < 3:
         return {
             "id": "insight-insufficient-data",
             "date_label": None,
@@ -253,18 +237,19 @@ def build_insight(
     sleep_comparison = compare_sleep_and_energy(biometrics)
     deviation = calculate_current_deviation(biometrics)
 
-    current = biometrics[-1]
+    current = energy_biometrics[-1]
 
     # Use the recent history as the comparison group.
-    comparable_days = max(len(biometrics) - 1, 0)
+    comparable_days = max(len(energy_biometrics) - 1, 0)
 
-    previous_days = biometrics[:-1]
+    previous_days = energy_biometrics[:-1]
 
     if previous_days:
         comparison_energy = average(
             [
                 item.energy_score
                 for item in previous_days
+                if item.energy_score is not None
             ]
         )
     else:

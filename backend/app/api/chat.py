@@ -53,9 +53,13 @@ def _fetch_user_context(db: Session, user_id: int) -> str:
     )
     if biometrics:
         bio_strs = [
-            f"- {b.recorded_at.strftime('%Y-%m-%d')}: Sleep {round(b.sleep_minutes/60,1)}h, "
-            f"Steps {b.steps}, Energy {b.energy_score}/10, HRV {b.hrv_milliseconds}ms, "
-            f"Active {b.active_minutes}min, RHR {b.resting_heart_rate_bpm}bpm"
+            f"- {b.recorded_at.strftime('%Y-%m-%d')}: "
+            f"Sleep {round(b.sleep_minutes/60,1) if b.sleep_minutes is not None else 'not recorded'}h, "
+            f"Steps {b.steps if b.steps is not None else 'not recorded'}, "
+            f"Energy {b.energy_score if b.energy_score is not None else 'not recorded'}/10, "
+            f"HRV {b.hrv_milliseconds if b.hrv_milliseconds is not None else 'not recorded'}ms, "
+            f"Active {b.active_minutes if b.active_minutes is not None else 'not recorded'}min, "
+            f"RHR {b.resting_heart_rate_bpm if b.resting_heart_rate_bpm is not None else 'not recorded'}bpm"
             for b in biometrics
         ]
         context_parts.append("Recent biometrics:\n" + "\n".join(bio_strs))

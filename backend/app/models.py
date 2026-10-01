@@ -121,28 +121,28 @@ class Biometric(Base):
         index=True,
     )
 
-    sleep_minutes: Mapped[int] = mapped_column(
-        Integer,
+    sleep_minutes: Mapped[Optional[int]] = mapped_column(
+        Integer, nullable=True,
     )
 
-    steps: Mapped[int] = mapped_column(
-        Integer,
+    steps: Mapped[Optional[int]] = mapped_column(
+        Integer, nullable=True,
     )
 
-    resting_heart_rate_bpm: Mapped[int] = mapped_column(
-        Integer,
+    resting_heart_rate_bpm: Mapped[Optional[int]] = mapped_column(
+        Integer, nullable=True,
     )
 
-    hrv_milliseconds: Mapped[int] = mapped_column(
-        Integer,
+    hrv_milliseconds: Mapped[Optional[int]] = mapped_column(
+        Integer, nullable=True,
     )
 
-    energy_score: Mapped[float] = mapped_column(
-        Float,
+    energy_score: Mapped[Optional[float]] = mapped_column(
+        Float, nullable=True,
     )
 
-    active_minutes: Mapped[int] = mapped_column(
-        Integer,
+    active_minutes: Mapped[Optional[int]] = mapped_column(
+        Integer, nullable=True,
     )
 
     user: Mapped["User"] = relationship(

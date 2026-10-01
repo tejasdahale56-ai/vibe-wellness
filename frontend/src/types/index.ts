@@ -1,11 +1,11 @@
 export type BiometricData = {
   recordedAt: string;
-  sleepMinutes: number;
-  steps: number;
-  restingHeartRateBpm: number;
-  hrvMilliseconds: number;
-  energyScore: number;
-  activeMinutes: number;
+  sleepMinutes: number | null;
+  steps: number | null;
+  restingHeartRateBpm: number | null;
+  hrvMilliseconds: number | null;
+  energyScore: number | null;
+  activeMinutes: number | null;
 };
 
 export type WellnessMetric = {
@@ -45,7 +45,7 @@ export type Insight = {
   methodNote?: string;
   comparison: {
     comparableDays: number;
-    averageAfternoonEnergy: number;
+    averageAfternoonEnergy: number | null;
   };
   category: "sleep" | "movement" | "nutrition" | "mood" | "general";
 };

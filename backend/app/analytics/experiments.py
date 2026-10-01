@@ -107,16 +107,10 @@ def calculate_experiment_measurement(
         if experiment_window_start <= record.recorded_at <= experiment.completed_at
     ]
 
-    baseline_energy = (
-        average([record.energy_score for record in baseline_records])
-        if baseline_records
-        else None
-    )
-    biometric_experiment_energy = (
-        average([record.energy_score for record in experiment_records])
-        if experiment_records
-        else None
-    )
+    baseline_energy_records = [record for record in baseline_records if record.energy_score is not None]
+    experiment_energy_records = [record for record in experiment_records if record.energy_score is not None]
+    baseline_energy = average([record.energy_score for record in baseline_energy_records])
+    biometric_experiment_energy = average([record.energy_score for record in experiment_energy_records])
     completion_energy = (
         experiment.self_reported_energy
         if experiment.self_reported_energy is not None
@@ -124,7 +118,7 @@ def calculate_experiment_measurement(
     )
     if biometric_experiment_energy is not None:
         experiment_period_energy = biometric_experiment_energy
-        experiment_period_observation_count = len(experiment_records)
+        experiment_period_observation_count = len(experiment_energy_records)
         experiment_period_source = "biometric_history"
     elif completion_energy is not None:
         experiment_period_energy = completion_energy
@@ -136,7 +130,7 @@ def calculate_experiment_measurement(
         experiment_period_source = "unavailable"
 
     sufficient_data = (
-        len(baseline_records) >= MIN_BASELINE_OBSERVATIONS
+        len(baseline_energy_records) >= MIN_BASELINE_OBSERVATIONS
         and experiment_period_observation_count
         >= MIN_EXPERIMENT_PERIOD_OBSERVATIONS
     )
@@ -150,12 +144,12 @@ def calculate_experiment_measurement(
     additional_measurements = {}
     if sufficient_data and baseline_records and experiment_records:
         for field in ADDITIONAL_MEASUREMENT_FIELDS:
-            baseline_value = average(
-                [float(getattr(record, field)) for record in baseline_records]
-            )
-            experiment_period_value = average(
-                [float(getattr(record, field)) for record in experiment_records]
-            )
+            baseline_values = [float(value) for record in baseline_records if (value := getattr(record, field)) is not None]
+            experiment_values = [float(value) for record in experiment_records if (value := getattr(record, field)) is not None]
+            baseline_value = average(baseline_values)
+            experiment_period_value = average(experiment_values)
+            if baseline_value is None or experiment_period_value is None:
+                continue
             additional_measurements[field] = {
                 "baseline": baseline_value,
                 "experiment_period": experiment_period_value,
@@ -167,7 +161,7 @@ def calculate_experiment_measurement(
 
     if sufficient_data:
         summary = (
-            f"Across {len(baseline_records)} baseline biometric observations "
+            f"Across {len(baseline_energy_records)} baseline energy observations "
             f"and {experiment_period_observation_count} during-experiment "
             f"measurement(s), energy averaged {baseline_energy:.2f} / 10 "
             f"before and {experiment_period_energy:.2f} / 10 during the "
@@ -185,10 +179,10 @@ def calculate_experiment_measurement(
         "baseline_energy": baseline_energy,
         "experiment_period_energy": experiment_period_energy,
         "observed_energy_difference": observed_energy_difference,
-        "baseline_observation_count": len(baseline_records),
+        "baseline_observation_count": len(baseline_energy_records),
         "experiment_period_observation_count": experiment_period_observation_count,
         "usable_observation_count": (
-            len(baseline_records) + experiment_period_observation_count
+            len(baseline_energy_records) + experiment_period_observation_count
         ),
         "sufficient_data": sufficient_data,
         "experiment_period_source": experiment_period_source,

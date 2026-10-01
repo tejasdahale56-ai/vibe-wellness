@@ -14,6 +14,7 @@ import TodayMeal from "@/components/TodayMeal";
 import {
   getDashboardFromApi,
   createExperimentFromApi,
+  getTodayHealthDataStatus,
   getExperimentsFromApi,
   getMealsFromApi,
   getPersonalBaselineFromApi,
@@ -210,12 +211,21 @@ export default function DashboardPage() {
   const [baselineError, setBaselineError] = useState(false);
   const [startingExperiment, setStartingExperiment] = useState<string | null>(null);
   const [experimentStartError, setExperimentStartError] = useState<string | null>(null);
+  const [dailyImportReminder, setDailyImportReminder] = useState(false);
   const localDate = useSyncExternalStore(
     subscribeToLocalDate,
     getLocalDate,
     () => null,
   );
   const [weekday, monthDay] = localDate?.split("|") ?? [];
+
+  useEffect(() => {
+    const now = new Date();
+    const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    void getTodayHealthDataStatus(date)
+      .then((status) => setDailyImportReminder(!status.has_data))
+      .catch((statusError) => console.error("Failed to check today's health data:", statusError));
+  }, []);
 
   useEffect(() => {
     async function loadDashboard() {
@@ -528,9 +538,9 @@ export default function DashboardPage() {
                   </div>
                   <div className="comparison-chart">
                     {comparisonRows.map((row) => {
-                      const scale = Math.max(row.today, row.baseline ?? 0, 1);
+                      const scale = Math.max(row.today ?? 0, row.baseline ?? 0, 1);
                       const baselineWidth = row.baseline === null ? 0 : (row.baseline / scale) * 100;
-                      const todayWidth = (row.today / scale) * 100;
+                      const todayWidth = row.today === null ? 0 : (row.today / scale) * 100;
                       return (
                         <div className="comparison-row" key={row.id}>
                           <div className="comparison-row-heading">
@@ -631,6 +641,15 @@ export default function DashboardPage() {
               ))}
             </div>
             <p className="suggested-experiment-note">Experiments are personal observations, not medical advice. When you finish, choose “Save this pattern” on your result to add it to your patterns.</p>
+          </section>
+        )}
+
+        {!loading && !error && dailyImportReminder && (
+          <section className="dashboard-section" aria-label="Daily data reminder">
+            <p>No health data has been recorded for today yet.</p>
+            <Link className="button button-outline" href="/health-data">
+              Import Daily Data <span aria-hidden="true">→</span>
+            </Link>
           </section>
         )}
 

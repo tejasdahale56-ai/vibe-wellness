@@ -12,16 +12,24 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 class BiometricBase(BaseModel):
     recorded_at: datetime
-    sleep_minutes: int = Field(ge=0)
-    steps: int = Field(ge=0)
-    resting_heart_rate_bpm: int = Field(gt=0)
-    hrv_milliseconds: int = Field(ge=0)
-    energy_score: float = Field(ge=0, le=10)
-    active_minutes: int = Field(ge=0)
+    sleep_minutes: Optional[int] = Field(default=None, ge=0)
+    steps: Optional[int] = Field(default=None, ge=0)
+    resting_heart_rate_bpm: Optional[int] = Field(default=None, gt=0)
+    hrv_milliseconds: Optional[int] = Field(default=None, ge=0)
+    energy_score: Optional[float] = Field(default=None, ge=0, le=10)
+    active_minutes: Optional[int] = Field(default=None, ge=0)
 
 
 class BiometricCreate(BiometricBase):
-    pass
+    @model_validator(mode="after")
+    def require_a_measurement(self):
+        metric_fields = (
+            "sleep_minutes", "steps", "resting_heart_rate_bpm",
+            "hrv_milliseconds", "energy_score", "active_minutes",
+        )
+        if all(getattr(self, field) is None for field in metric_fields):
+            raise ValueError("At least one biometric measurement is required.")
+        return self
 
 
 class BiometricResponse(BiometricBase):
@@ -372,3 +380,17 @@ class HistoryEventResponse(BaseModel):
     title: str
     description: str
     metadata: dict[str, object]
+
+
+class HealthDataImportResponse(BaseModel):
+    filename: str
+    days_imported: int = Field(ge=0)
+    days_skipped_as_duplicates: int = Field(ge=0)
+    date_range: Optional[dict[str, str]] = None
+    imported_metrics: list[str]
+    warnings: list[str]
+
+
+class HealthDataTodayResponse(BaseModel):
+    local_date: str
+    has_data: bool

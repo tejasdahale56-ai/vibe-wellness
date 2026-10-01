@@ -63,8 +63,10 @@ def get_dashboard(
             else baseline[average_field]
         )
         value = getattr(current, field)
-        difference = round(value - reference, precision) if reference is not None else None
-        if unit == "minutes":
+        difference = round(value - reference, precision) if value is not None and reference is not None else None
+        if value is None:
+            formatted_value = "—"
+        elif unit == "minutes":
             formatted_value = f"{round(value / 60, 1)}h" if field == "sleep_minutes" else f"{int(value)} min"
         elif unit == "count":
             formatted_value = f"{int(value):,}"
@@ -76,7 +78,7 @@ def get_dashboard(
             formatted_value = f"{value:.1f}/10"
 
         if difference is None:
-            description = "Set a personal baseline to compare"
+            description = "Not recorded today" if value is None else "Set a personal baseline to compare"
             tone = "neutral"
         else:
             formatted_difference = f"{difference:+.{precision}f}" if precision else f"{difference:+,.0f}"

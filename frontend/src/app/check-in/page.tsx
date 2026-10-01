@@ -32,7 +32,7 @@ const emptyForm: SignalForm = {
 
 function formFromCheckin(checkin: BiometricCheckin): SignalForm {
   return Object.fromEntries(
-    fields.map(({ key }) => [key, String(checkin[key])]),
+    fields.map(({ key }) => [key, String(checkin[key] ?? "")]),
   ) as SignalForm;
 }
 
@@ -64,17 +64,22 @@ export default function CheckInPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!checkin) return;
+    if (fields.every(({ key }) => form[key].trim() === "")) {
+      setError("Enter at least one measurement before saving.");
+      return;
+    }
+    const measurement = (value: string) => value.trim() === "" ? null : Number(value);
     try {
       setIsSaving(true);
       setError(null);
       await updateBiometricFromApi(checkin.id, {
         recordedAt: checkin.recordedAt,
-        sleepMinutes: Number(form.sleepMinutes),
-        steps: Number(form.steps),
-        restingHeartRateBpm: Number(form.restingHeartRateBpm),
-        hrvMilliseconds: Number(form.hrvMilliseconds),
-        energyScore: Number(form.energyScore),
-        activeMinutes: Number(form.activeMinutes),
+        sleepMinutes: measurement(form.sleepMinutes),
+        steps: measurement(form.steps),
+        restingHeartRateBpm: measurement(form.restingHeartRateBpm),
+        hrvMilliseconds: measurement(form.hrvMilliseconds),
+        energyScore: measurement(form.energyScore),
+        activeMinutes: measurement(form.activeMinutes),
       });
       router.push("/dashboard");
     } catch (saveError) {
@@ -117,7 +122,6 @@ export default function CheckInPage() {
                   step={step}
                   value={form[key]}
                   onChange={(event) => setForm((previous) => ({ ...previous, [key]: event.target.value }))}
-                  required
                   disabled={isSaving}
                 />
               </div>
