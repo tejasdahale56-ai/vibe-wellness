@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { AuthProvider } from "@/components/AuthProvider";
+import AuthGuard from "@/components/AuthGuard";
 
 export const metadata: Metadata = {
   title: "VIBE — Feel more like you",
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" data-scroll-behavior="smooth">
-      <body><AuthProvider>{children}</AuthProvider></body>
+      <body><AuthGuard>{children}</AuthGuard></body>
     </html>
   );
 }

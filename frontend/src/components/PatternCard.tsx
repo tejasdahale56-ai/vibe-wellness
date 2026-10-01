@@ -3,7 +3,11 @@
 import type { Pattern } from "@/types";
 import { Moon, Utensils, Zap, Circle } from "lucide-react";
 
-type PatternCardProps = { pattern: Pattern };
+type PatternCardData = Omit<Pattern, "id" | "category"> & {
+  category: Pattern["category"] | "recovery";
+};
+
+type PatternCardProps = { pattern: PatternCardData };
 
 function CategoryIcon({ category }: { category: string }) {
   switch (category) {
@@ -40,7 +44,9 @@ export default function PatternCard({ pattern }: PatternCardProps) {
       </div>
       <h2>{pattern.title}</h2>
       <p>{pattern.description}</p>
-      <small className="card-supporting-text">{pattern.supportingDetail}</small>
+      <small className="card-supporting-text">
+        {pattern.observationCount} observations · {pattern.supportingDetail}
+      </small>
     </article>
   );
 }

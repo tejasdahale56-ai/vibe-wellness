@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from ..analytics.personal import calculate_baseline
 from ..current_user import get_current_user
 from ..database import get_db
-from ..models import Biometric, User
+from ..models import Biometric, PersonalMetricBaseline, User
 from ..schemas import DashboardResponse
 
 
@@ -37,96 +37,62 @@ def get_dashboard(
 
     current = biometrics[0]
 
+    personal_baseline = (
+        db.query(PersonalMetricBaseline)
+        .filter(PersonalMetricBaseline.user_id == current_user.id)
+        .first()
+    )
+
     baseline = calculate_baseline(
         list(reversed(biometrics))
     )
 
-    sleep_change = round(
-        current.sleep_minutes
-        - baseline["average_sleep_minutes"],
-        1,
-    )
-
-    steps_change = round(
-        current.steps
-        - baseline["average_steps"],
-        1,
-    )
-
-    energy_change = round(
-        current.energy_score
-        - baseline["average_energy_score"],
-        1,
-    )
-
-    active_change = round(
-        current.active_minutes
-        - baseline["average_active_minutes"],
-        1,
-    )
-
-    metrics = [
-        {
-            "id": "sleep",
-            "label": "Sleep",
-            "value": f"{round(current.sleep_minutes / 60, 1)}h",
-            "description": (
-                f"{'+' if sleep_change >= 0 else ''}"
-                f"{sleep_change} min vs your baseline"
-            ),
-            "icon": "moon",
-            "tone": (
-                "green"
-                if sleep_change >= 0
-                else "amber"
-            ),
-        },
-        {
-            "id": "steps",
-            "label": "Steps",
-            "value": f"{current.steps:,}",
-            "description": (
-                f"{'+' if steps_change >= 0 else ''}"
-                f"{int(steps_change):,} vs your baseline"
-            ),
-            "icon": "footprints",
-            "tone": (
-                "green"
-                if steps_change >= 0
-                else "amber"
-            ),
-        },
-        {
-            "id": "energy",
-            "label": "Energy",
-            "value": f"{current.energy_score:.1f}/10",
-            "description": (
-                f"{'+' if energy_change >= 0 else ''}"
-                f"{energy_change:.1f} vs your baseline"
-            ),
-            "icon": "bolt",
-            "tone": (
-                "green"
-                if energy_change >= 0
-                else "amber"
-            ),
-        },
-        {
-            "id": "active",
-            "label": "Active",
-            "value": f"{current.active_minutes} min",
-            "description": (
-                f"{'+' if active_change >= 0 else ''}"
-                f"{active_change:.0f} min vs your baseline"
-            ),
-            "icon": "activity",
-            "tone": (
-                "green"
-                if active_change >= 0
-                else "amber"
-            ),
-        },
+    metric_definitions = [
+        ("sleep", "Sleep", "sleep_minutes", "average_sleep_minutes", "moon", "minutes", 1),
+        ("steps", "Steps", "steps", "average_steps", "footprints", "count", 0),
+        ("resting-heart-rate", "Resting HR", "resting_heart_rate_bpm", "average_resting_heart_rate_bpm", "heart", "bpm", 0),
+        ("hrv", "HRV", "hrv_milliseconds", "average_hrv_milliseconds", "activity", "ms", 0),
+        ("energy", "Energy", "energy_score", "average_energy_score", "bolt", "score", 1),
+        ("active-minutes", "Active minutes", "active_minutes", "average_active_minutes", "activity", "minutes", 0),
     ]
+    metrics = []
+    for metric_id, label, field, average_field, icon, unit, precision in metric_definitions:
+        reference = (
+            getattr(personal_baseline, field)
+            if personal_baseline is not None
+            else baseline[average_field]
+        )
+        value = getattr(current, field)
+        difference = round(value - reference, precision) if reference is not None else None
+        if unit == "minutes":
+            formatted_value = f"{round(value / 60, 1)}h" if field == "sleep_minutes" else f"{int(value)} min"
+        elif unit == "count":
+            formatted_value = f"{int(value):,}"
+        elif unit == "bpm":
+            formatted_value = f"{int(value)} bpm"
+        elif unit == "ms":
+            formatted_value = f"{int(value)} ms"
+        else:
+            formatted_value = f"{value:.1f}/10"
+
+        if difference is None:
+            description = "Set a personal baseline to compare"
+            tone = "neutral"
+        else:
+            formatted_difference = f"{difference:+.{precision}f}" if precision else f"{difference:+,.0f}"
+            suffix = {"minutes": " min", "bpm": " bpm", "ms": " ms", "score": " points"}.get(unit, "")
+            description = f"{formatted_difference}{suffix} vs your baseline"
+            favorable = difference <= 0 if field == "resting_heart_rate_bpm" else difference >= 0
+            tone = "green" if favorable else "amber"
+
+        metrics.append({
+            "id": metric_id,
+            "label": label,
+            "value": formatted_value,
+            "description": description,
+            "icon": icon,
+            "tone": tone,
+        })
 
     return {
         "biometrics": current,

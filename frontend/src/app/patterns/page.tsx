@@ -7,11 +7,15 @@ import Navbar from "@/components/Navbar";
 import PatternCard from "@/components/PatternCard";
 import {
   getAnalyticsSummaryFromApi,
+  getDiscoveredPatternsFromApi,
   getExperimentsFromApi,
   getPatternAnalysisFromApi,
   getPatternsFromApi,
 } from "@/lib/api";
-import type { PatternAnalysisResponse } from "@/lib/api";
+import type {
+  PersonalPatternDiscovery,
+  PatternAnalysisResponse,
+} from "@/lib/api";
 import type { Pattern, PatternSummary } from "@/types";
 
 const categories = [
@@ -26,6 +30,10 @@ export default function PatternsPage() {
   const [analysis, setAnalysis] = useState<PatternAnalysisResponse | null>(null);
   const [analysisLoading, setAnalysisLoading] = useState(true);
   const [analysisError, setAnalysisError] = useState(false);
+  const [discovery, setDiscovery] =
+    useState<PersonalPatternDiscovery | null>(null);
+  const [discoveryLoading, setDiscoveryLoading] = useState(true);
+  const [discoveryError, setDiscoveryError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -64,8 +72,20 @@ export default function PatternsPage() {
       }
     }
 
+    async function loadDiscoveredPatterns() {
+      try {
+        setDiscovery(await getDiscoveredPatternsFromApi());
+      } catch (err) {
+        console.error("Failed to load discovered patterns:", err);
+        setDiscoveryError(true);
+      } finally {
+        setDiscoveryLoading(false);
+      }
+    }
+
     void loadPatternAnalysis();
     void loadPatterns();
+    void loadDiscoveredPatterns();
   }, []);
 
   const observations = analysis?.enough_data_for_pattern
@@ -143,6 +163,32 @@ export default function PatternsPage() {
                 </article>
               );
             })}
+          </div>
+        </section>
+
+        <section className="patterns-page-section" aria-labelledby="discovered-patterns-title">
+          <div className="patterns-page-section-heading">
+            <div>
+              <p className="section-eyebrow">YOUR RECORDED SIGNALS</p>
+              <h2 id="discovered-patterns-title">Repeated personal associations</h2>
+            </div>
+            <span>
+              {discovery
+                ? `${discovery.patterns.length} observations · min ${discovery.minimumObservations} records`
+                : ""}
+            </span>
+          </div>
+          <div className="patterns-collection-grid">
+            {discoveryLoading && <p>Looking for repeated observations in your history...</p>}
+            {!discoveryLoading && discoveryError && <p>We couldn&apos;t load your personal associations right now.</p>}
+            {!discoveryLoading && !discoveryError && discovery && discovery.patterns.length === 0 && (
+              <p>
+                No repeated personal associations yet. VIBE needs at least {discovery.minimumObservations} comparable observations, with at least {discovery.minimumGroupObservations} in each comparison group. You currently have {discovery.biometricObservations} biometric observations and {discovery.mealTimingObservations} meal-to-next-day matches.
+              </p>
+            )}
+            {!discoveryLoading && !discoveryError && discovery?.patterns.map((pattern) => (
+              <PatternCard key={`${pattern.category}-${pattern.title}`} pattern={pattern} />
+            ))}
           </div>
         </section>
 

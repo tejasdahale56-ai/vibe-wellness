@@ -5,6 +5,7 @@ from ..analytics.experiments import (
     get_completed_experiments,
     summarize_experiment_energy,
 )
+from ..analytics.discovery import discover_personal_patterns
 from ..analytics.personal import (
     build_insight,
     calculate_baseline,
@@ -16,6 +17,10 @@ from ..analytics.personal import (
 from ..current_user import get_current_user
 from ..database import get_db
 from ..models import User
+from ..schemas import (
+    PersonalBaselineResponse,
+    PersonalPatternDiscoveryResponse,
+)
 
 
 router = APIRouter(
@@ -24,6 +29,62 @@ router = APIRouter(
 )
 
 MIN_BIOMETRIC_OBSERVATIONS_FOR_INSIGHT = 3
+
+BASELINE_METRIC_FIELDS = {
+    "sleep_minutes": "average_sleep_minutes",
+    "steps": "average_steps",
+    "resting_heart_rate_bpm": "average_resting_heart_rate_bpm",
+    "hrv_milliseconds": "average_hrv_milliseconds",
+    "active_minutes": "average_active_minutes",
+    "energy_score": "average_energy_score",
+}
+
+
+@router.get("/baseline", response_model=PersonalBaselineResponse)
+def get_personal_baseline(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Return deterministic latest-versus-average biometric comparisons."""
+
+    biometrics = get_biometric_history(
+        db=db,
+        user_id=current_user.id,
+    )
+    baseline = calculate_baseline(biometrics)
+    deviation = calculate_current_deviation(biometrics)
+    latest = biometrics[-1] if biometrics else None
+
+    return {
+        "observation_count": len(biometrics),
+        "latest_recorded_at": latest.recorded_at if latest else None,
+        "metrics": {
+            field: {
+                "baseline": baseline[baseline_field],
+                "latest": getattr(latest, field) if latest else None,
+                "difference": deviation.get(field),
+            }
+            for field, baseline_field in BASELINE_METRIC_FIELDS.items()
+        },
+    }
+
+
+@router.get("/patterns", response_model=PersonalPatternDiscoveryResponse)
+def get_discovered_patterns(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Return computed, non-persistent associations for the current user."""
+
+    biometrics = get_biometric_history(
+        db=db,
+        user_id=current_user.id,
+    )
+    meals = get_meal_history(
+        db=db,
+        user_id=current_user.id,
+    )
+    return discover_personal_patterns(biometrics, meals)
 
 
 @router.get("/summary")

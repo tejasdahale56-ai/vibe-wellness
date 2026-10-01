@@ -27,10 +27,10 @@ class User(Base):
         nullable=True,
     )
 
-    firebase_uid: Mapped[Optional[str]] = mapped_column(
-        String(128),
-        unique=True,
-        index=True,
+    # Nullable so existing demo users remain intact. Only users created
+    # through /api/auth/signup can authenticate with a password.
+    password_hash: Mapped[Optional[str]] = mapped_column(
+        String(255),
         nullable=True,
     )
 
@@ -57,6 +57,48 @@ class User(Base):
     patterns: Mapped[list["Pattern"]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
+    )
+
+    primary_goal: Mapped[Optional["Goal"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        uselist=False,
+    )
+
+    sessions: Mapped[list["UserSession"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
+
+class UserSession(Base):
+    __tablename__ = "user_sessions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    # Store only a digest of the high-entropy opaque cookie token.
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    user: Mapped["User"] = relationship(back_populates="sessions")
+
+
+class PersonalMetricBaseline(Base):
+    __tablename__ = "personal_metric_baselines"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"), unique=True, index=True
+    )
+    sleep_minutes: Mapped[float] = mapped_column(Float)
+    steps: Mapped[float] = mapped_column(Float)
+    resting_heart_rate_bpm: Mapped[float] = mapped_column(Float)
+    hrv_milliseconds: Mapped[float] = mapped_column(Float)
+    energy_score: Mapped[float] = mapped_column(Float)
+    active_minutes: Mapped[float] = mapped_column(Float)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
     )
 
 
@@ -151,6 +193,49 @@ class Meal(Base):
         default=list,
     )
 
+    # These are deterministic, coarse estimates, not measured nutrition data.
+    # Nullable fields preserve existing meal records and unknown descriptions.
+    portion_size: Mapped[Optional[str]] = mapped_column(
+        String(10),
+        nullable=True,
+    )
+
+    estimated_calories: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
+    estimated_protein_g: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
+    estimated_carbs_g: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
+    estimated_fat_g: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
+    estimated_fiber_g: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
+    nutrition_confidence: Mapped[Optional[str]] = mapped_column(
+        String(20),
+        nullable=True,
+    )
+
+    @property
+    def nutrition_estimate_note(self) -> Optional[str]:
+        if self.estimated_calories is None:
+            return None
+        return "Estimated from recognized meal text and portion size."
+
     user: Mapped["User"] = relationship(
         back_populates="meals",
     )
@@ -168,6 +253,13 @@ class Experiment(Base):
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id"),
         index=True,
+    )
+
+    # Nullable preserves existing records created before history support.
+    created_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime,
+        default=datetime.utcnow,
+        nullable=True,
     )
 
     title: Mapped[str] = mapped_column(
@@ -255,6 +347,13 @@ class Pattern(Base):
         index=True,
     )
 
+    # Nullable preserves existing records created before history support.
+    created_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime,
+        default=datetime.utcnow,
+        nullable=True,
+    )
+
     title: Mapped[str] = mapped_column(
         String(200),
     )
@@ -278,4 +377,48 @@ class Pattern(Base):
 
     user: Mapped["User"] = relationship(
         back_populates="patterns",
+    )
+
+
+class Goal(Base):
+    __tablename__ = "goals"
+
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
+
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"),
+        unique=True,
+        index=True,
+    )
+
+    goal_type: Mapped[str] = mapped_column(
+        String(50),
+    )
+
+    display_label: Mapped[str] = mapped_column(
+        String(100),
+    )
+
+    custom_text: Mapped[Optional[str]] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=datetime.utcnow,
+    )
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+    )
+
+    user: Mapped["User"] = relationship(
+        back_populates="primary_goal",
     )

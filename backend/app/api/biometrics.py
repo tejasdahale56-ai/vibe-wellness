@@ -48,3 +48,28 @@ def create_biometric(
     db.refresh(new_biometric)
 
     return new_biometric
+
+
+@router.put("/{biometric_id}", response_model=BiometricResponse)
+def update_biometric(
+    biometric_id: int,
+    biometric: BiometricCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    record = (
+        db.query(Biometric)
+        .filter(
+            Biometric.id == biometric_id,
+            Biometric.user_id == current_user.id,
+        )
+        .first()
+    )
+    if record is None:
+        raise HTTPException(status_code=404, detail="Biometric check-in not found.")
+
+    for field, value in biometric.model_dump().items():
+        setattr(record, field, value)
+    db.commit()
+    db.refresh(record)
+    return record

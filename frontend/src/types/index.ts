@@ -25,6 +25,13 @@ export type Meal = {
   loggedAt: string;
   timeLabel: string;
   tags: string[];
+  portionSize?: "small" | "medium" | "large";
+  estimatedCalories?: number;
+  estimatedProteinG?: number;
+  estimatedCarbsG?: number;
+  estimatedFatG?: number;
+  estimatedFiberG?: number;
+  nutritionConfidence?: "low" | "medium" | "high";
 };
 
 export type Insight = {

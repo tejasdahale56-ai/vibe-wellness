@@ -3,18 +3,38 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { createPatternFromApi, getExperimentFromApi } from "@/lib/api";
-import type { Experiment } from "@/types";
+import {
+  createPatternFromApi,
+  getExperimentResultFromApi,
+  type ExperimentMeasurement,
+} from "@/lib/api";
 
 type ExperimentResultViewProps = {
   experimentId?: string;
 };
 
+const measurementLabels: Record<string, string> = {
+  sleep_minutes: "Sleep",
+  steps: "Steps",
+  resting_heart_rate_bpm: "Resting heart rate",
+  hrv_milliseconds: "HRV",
+  active_minutes: "Active minutes",
+};
+
+function formatMeasurementValue(key: string, value: number) {
+  if (key === "resting_heart_rate_bpm") return `${value.toFixed(0)} bpm`;
+  if (key === "hrv_milliseconds") return `${value.toFixed(0)} ms`;
+  if (key === "sleep_minutes" || key === "active_minutes") {
+    return `${value.toFixed(0)} min`;
+  }
+  return value.toFixed(0);
+}
+
 export default function ExperimentResultView({
   experimentId,
 }: ExperimentResultViewProps) {
   const router = useRouter();
-  const [result, setResult] = useState<Experiment | null>(null);
+  const [result, setResult] = useState<ExperimentMeasurement | null>(null);
   const [loading, setLoading] = useState(Boolean(experimentId));
   const [error, setError] = useState<string | null>(
     experimentId ? null : "We couldn\u2019t find an experiment to display.",
@@ -30,11 +50,11 @@ export default function ExperimentResultView({
 
     async function loadExperiment() {
       try {
-        const experiment = await getExperimentFromApi(id);
-        if (experiment.id !== id || experiment.status !== "completed") {
-          throw new Error("The requested experiment is not completed.");
+        const measurement = await getExperimentResultFromApi(id);
+        if (measurement.id !== id) {
+          throw new Error("The requested experiment result did not match.");
         }
-        if (isMounted) setResult(experiment);
+        if (isMounted) setResult(measurement);
       } catch (err) {
         console.error("Failed to load experiment result:", err);
         if (isMounted) {
@@ -61,23 +81,17 @@ export default function ExperimentResultView({
   }
 
   const experiment = result;
-  const currentEnergy = experiment.energyAfter;
+  const currentEnergy = experiment.experimentPeriodEnergy;
   const baselineEnergy = experiment.baselineEnergy;
-  const difference = currentEnergy !== undefined && baselineEnergy !== undefined
-    ? currentEnergy - baselineEnergy
-    : undefined;
-  const completedAt = result.completedAt
-    ? new Date(result.completedAt).toLocaleString()
-    : "Not recorded";
+  const difference = experiment.observedEnergyDifference;
+  const completedAt = new Date(result.completedAt).toLocaleString();
+  const additionalMeasurements = Object.entries(
+    experiment.additionalMeasurements,
+  );
 
   async function handleSavePattern() {
-    const supportedCategories = ["sleep", "meals", "movement"] as const;
-    const categoryCandidate = experiment.category ?? experiment.type;
-    const category = supportedCategories.find(
-      (supportedCategory) => supportedCategory === categoryCandidate,
-    ) ?? "meals";
-    const energyDetail = currentEnergy !== undefined && baselineEnergy !== undefined
-      ? `Recorded energy was ${currentEnergy.toFixed(1)} / 10 after the experiment and ${baselineEnergy.toFixed(1)} / 10 in the recent-history baseline.`
+    const energyDetail = currentEnergy !== null && baselineEnergy !== null
+      ? `Recorded energy was ${currentEnergy.toFixed(1)} / 10 during the experiment and ${baselineEnergy.toFixed(1)} / 10 in the baseline period.`
       : "This completed experiment adds one observation to your personal history.";
 
     try {
@@ -86,7 +100,7 @@ export default function ExperimentResultView({
       await createPatternFromApi({
         title: `${experiment.title} observation`,
         description: `An observation from the completed "${experiment.title}" experiment. ${energyDetail}`,
-        category,
+        category: "meals",
         observationCount: 1,
         supportingDetail: experiment.reflection?.trim() || `Completed ${completedAt}.`,
       });
@@ -104,21 +118,24 @@ export default function ExperimentResultView({
       <header className="result-page-heading">
         <p className="section-eyebrow">A MOMENT TO REFLECT</p>
         <h1>Your experiment result</h1>
-        <p>{result.title}</p>
+        <p>{result.description}</p>
       </header>
 
       <section className="result-comparison-card" aria-labelledby="result-comparison-heading">
-        <span className="card-kicker">YOUR RECENT HISTORY</span>
-        <h2 id="result-comparison-heading">A new observation for your pattern.</h2>
+        <span className="card-kicker">{result.sufficientData ? "YOUR RECORDED COMPARISON" : "MORE DATA NEEDED"}</span>
+        <h2 id="result-comparison-heading">{result.title}</h2>
+        {result.hypothesis && <p className="result-comparison-copy">Hypothesis: {result.hypothesis}</p>}
+        {result.context && <p className="result-comparison-copy">Context: {result.context}</p>}
         <div className="result-metrics">
-          <div className="result-metric"><span>TODAY</span><strong>{currentEnergy !== undefined ? currentEnergy.toFixed(1) : "—"} <small>/ 10</small></strong></div>
+          <div className="result-metric"><span>DURING EXPERIMENT</span><strong>{currentEnergy !== null ? currentEnergy.toFixed(1) : "—"} <small>/ 10</small></strong></div>
           <span className="result-divider" aria-hidden="true">vs.</span>
-          <div className="result-metric"><span>COMPARABLE DAYS</span><strong>{baselineEnergy !== undefined ? baselineEnergy.toFixed(1) : "—"} <small>/ 10</small></strong></div>
-          <div className="result-difference"><span>DIFFERENCE</span><strong>{difference !== undefined ? `${difference > 0 ? "+" : ""}${difference.toFixed(1)}` : "—"}</strong></div>
+          <div className="result-metric"><span>BASELINE</span><strong>{baselineEnergy !== null ? baselineEnergy.toFixed(1) : "—"} <small>/ 10</small></strong></div>
+          <div className="result-difference"><span>OBSERVED DIFFERENCE</span><strong>{difference !== null ? `${difference > 0 ? "+" : ""}${difference.toFixed(1)}` : "—"}</strong></div>
         </div>
-        <p className="result-comparison-copy">Your check-in was {result.selfReportedEnergy !== undefined ? result.selfReportedEnergy.toFixed(1) : "—"} / 10. This compares your recorded energy after the experiment with your recent-history baseline.</p>
+        <p className="result-comparison-copy">Duration: {result.durationDays} {result.durationDays === 1 ? "day" : "days"}. {result.baselineObservationCount} baseline observation{result.baselineObservationCount === 1 ? "" : "s"} and {result.experimentPeriodObservationCount} during-experiment measurement{result.experimentPeriodObservationCount === 1 ? "" : "s"} were usable.</p>
+        {!result.sufficientData && <p className="result-comparison-copy">At least {result.minimumBaselineObservations} baseline observations and {result.minimumExperimentPeriodObservations} during-experiment measurement are required for a measured comparison.</p>}
+        <p className="result-comparison-copy">{result.summary}</p>
         <p className="result-comparison-copy">Completed {completedAt}.</p>
-        <p className="result-caution">This is one observation, not proof that the experiment caused the difference.</p>
       </section>
 
       {result.reflection?.trim() && (
@@ -129,9 +146,24 @@ export default function ExperimentResultView({
         </section>
       )}
 
+      {additionalMeasurements.length > 0 && (
+        <section className="result-learning-card" aria-labelledby="biometric-comparisons-heading">
+          <span className="philosophy-mark" aria-hidden="true">✳</span>
+          <div>
+            <p className="section-eyebrow">SUPPORTED BIOMETRIC COMPARISONS</p>
+            <h2 id="biometric-comparisons-heading">Before and during</h2>
+            {additionalMeasurements.map(([key, measurement]) => (
+              <p key={key}>
+                {measurementLabels[key] ?? key}: {formatMeasurementValue(key, measurement.baseline)} before, {formatMeasurementValue(key, measurement.experiment_period)} during, {measurement.observed_difference > 0 ? "+" : ""}{formatMeasurementValue(key, measurement.observed_difference)} observed difference.
+              </p>
+            ))}
+          </div>
+        </section>
+      )}
+
       <section className="result-learning-card" aria-labelledby="learned-heading">
         <span className="philosophy-mark" aria-hidden="true">✳</span>
-        <div><p className="section-eyebrow">ONE STEP IN A LONGER STORY</p><h2 id="learned-heading">What VIBE learned</h2><p>Today&apos;s observation adds another data point to your personal history.</p><p>Over time, repeated observations can help reveal whether this pattern shows up consistently for you.</p></div>
+        <div><p className="section-eyebrow">ONE STEP IN A LONGER STORY</p><h2 id="learned-heading">What VIBE learned</h2><p>{result.summary}</p><p>Over time, repeated observations can help reveal whether this pattern shows up consistently for you.</p></div>
       </section>
 
       <div className="result-actions">

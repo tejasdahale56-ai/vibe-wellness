@@ -3,24 +3,29 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createMealFromApi } from "@/lib/api";
+import MealCard from "@/components/MealCard";
 import type { Meal } from "@/types";
 
-type Portion = "Small" | "Medium" | "Large";
-const portions: Portion[] = ["Small", "Medium", "Large"];
+type Portion = NonNullable<Meal["portionSize"]>;
+const portions: { label: string; value: Portion }[] = [
+  { label: "Small", value: "small" },
+  { label: "Medium", value: "medium" },
+  { label: "Large", value: "large" },
+];
 
 export default function MealLogForm() {
   const router = useRouter();
   const [description, setDescription] = useState("");
-  const [portion, setPortion] = useState<Portion>("Medium");
+  const [portion, setPortion] = useState<Portion>("medium");
   const [showValidation, setShowValidation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [createdMeal, setCreatedMeal] = useState<Meal | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
     const name = String(formData.get("description") ?? "").trim();
-    const selectedPortion = String(formData.get("portion") ?? "Medium") as Portion;
     const selectedTime = String(formData.get("time") ?? "13:15");
 
     if (!name) {
@@ -34,20 +39,27 @@ export default function MealLogForm() {
 
     const meal: Omit<Meal, "id"> = {
       name,
-      description: `${selectedPortion} portion`,
+      description: `${portion[0].toUpperCase()}${portion.slice(1)} portion`,
       loggedAt: loggedAt.toISOString(),
       timeLabel: loggedAt.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }),
       tags: [],
+      portionSize: portion,
     };
 
     try {
       setIsSubmitting(true);
       setError(null);
-      await createMealFromApi(meal);
-      router.push("/dashboard");
+      const created = await createMealFromApi(meal);
+      setCreatedMeal(created);
+      setDescription("");
     } catch (err) {
       console.error("Failed to create meal:", err);
-      setError("We couldn\u2019t save your meal. Please try again.");
+      if (err instanceof Error && err.message.includes("(422)")) {
+        setShowValidation(true);
+        setError("Tell us what you ate first.");
+      } else {
+        setError("We couldn\u2019t save your meal. Please try again.");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -82,16 +94,16 @@ export default function MealLogForm() {
         <legend className="form-label">How much?</legend>
         <div className="portion-options">
           {portions.map((option) => (
-            <label className={`portion-option${portion === option ? " is-selected" : ""}`} key={option}>
+            <label className={`portion-option${portion === option.value ? " is-selected" : ""}`} key={option.value}>
               <input
                 type="radio"
                 name="portion"
-                value={option}
-                checked={portion === option}
-                onChange={() => setPortion(option)}
+                value={option.value}
+                checked={portion === option.value}
+                onChange={() => setPortion(option.value)}
                 disabled={isSubmitting}
               />
-              <span>{option}</span>
+              <span>{option.label}</span>
             </label>
           ))}
         </div>
@@ -104,6 +116,16 @@ export default function MealLogForm() {
 
       {error && <p className="meal-validation" role="alert">{error}</p>}
       <button className="button button-dark save-meal-button" type="submit" disabled={isSubmitting}>{isSubmitting ? "Saving meal..." : <>Save meal <span aria-hidden="true">→</span></>}</button>
+
+      {createdMeal && (
+        <section aria-live="polite">
+          <p className="section-eyebrow">DETECTED FROM YOUR MEAL</p>
+          <MealCard meal={createdMeal} />
+          <button className="button button-outline save-meal-button" type="button" onClick={() => router.push("/dashboard")}>
+            Back to today
+          </button>
+        </section>
+      )}
     </form>
   );
 }

@@ -67,7 +67,7 @@ function ExperimentPageContent() {
       <Navbar variant="product" />
       <div className="experiment-page-wrap">
         <header className="experiment-page-heading">
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "20px" }}>
+          <div className="experiment-heading-row">
             <div>
               <p className="section-eyebrow">A LITTLE CURIOSITY, NO PRESSURE</p>
               <h1>Try a small experiment</h1>
@@ -75,14 +75,7 @@ function ExperimentPageContent() {
             </div>
             <button
               onClick={() => setShowCreateForm(true)}
-              style={{
-                display: "inline-flex", alignItems: "center", gap: "8px", padding: "10px 16px",
-                border: "1px solid var(--color-border)", borderRadius: "var(--radius-control)",
-                background: "transparent", color: "var(--color-accent)", fontSize: "12px", fontWeight: 600,
-                cursor: "pointer", transition: "all 0.2s"
-              }}
-              onMouseOver={(e) => { e.currentTarget.style.background = "var(--color-surface-raised)"; }}
-              onMouseOut={(e) => { e.currentTarget.style.background = "transparent"; }}
+              className="button"
             >
               <Plus size={16} /> New Experiment
             </button>
@@ -93,8 +86,8 @@ function ExperimentPageContent() {
           <CreateExperimentForm onClose={() => setShowCreateForm(false)} onCreated={handleCreateExperiment} />
         )}
 
-        {!showCreateForm && loading && <p>Loading your experiment...</p>}
-        {!showCreateForm && error && <p>We couldn\u2019t load your experiment.</p>}
+        {!showCreateForm && loading && <p className="page-state">Loading your experiment...</p>}
+        {!showCreateForm && error && <p className="page-state">We couldn\u2019t load your experiment.</p>}
         {!showCreateForm && !loading && !error && experiment?.status === "completed" && (
           <section className="latest-experiment-card" aria-labelledby="completed-experiment-title">
             <p className="latest-experiment-status">Observation recorded</p>
@@ -108,7 +101,7 @@ function ExperimentPageContent() {
         {!showCreateForm && !loading && !error && experiment && experiment.status !== "completed" && <ExperimentForm experiment={experiment} />}
         {!showCreateForm && !loading && !error && !experiment && experiments.length > 0 && (
           <>
-            <p>Choose an experiment to continue.</p>
+            <p className="page-state">Choose an experiment to continue.</p>
             <div className="experiment-preview">
               {experiments.filter((item) => item.status !== "completed").map((item) => (
                 <div key={item.id}>
@@ -122,7 +115,7 @@ function ExperimentPageContent() {
             </div>
           </>
         )}
-        {!showCreateForm && !loading && !error && !experiment && experiments.length === 0 && <p>No experiments yet. Create one to get started.</p>}
+        {!showCreateForm && !loading && !error && !experiment && experiments.length === 0 && <p className="page-state">No experiments yet. Create one to get started.</p>}
 
         {!showCreateForm && (
           <Link className="text-link" href="/experiment/create">
