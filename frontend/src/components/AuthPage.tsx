@@ -2,16 +2,48 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
-type AuthPageProps = { mode: "login" | "register" };
+import { login, signup } from "@/lib/api";
+
+type AuthPageProps = { mode: "login" | "signup" };
 
 export default function AuthPage({ mode }: AuthPageProps) {
-  const isRegister = mode === "register";
-  const [notice, setNotice] = useState("");
+  const isRegister = mode === "signup";
+  const router = useRouter();
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setNotice("This form is a frontend preview. Account access isn’t connected yet.");
+    const formData = new FormData(event.currentTarget);
+    const email = String(formData.get("email") ?? "");
+    const password = String(formData.get("password") ?? "");
+
+    try {
+      setIsSubmitting(true);
+      setError("");
+      if (isRegister) {
+        await signup({
+          name: String(formData.get("name") ?? ""),
+          email,
+          password,
+        });
+        router.push("/login");
+      } else {
+        await login({ email, password });
+        router.push("/dashboard");
+      }
+    } catch (err) {
+      console.error("Authentication request failed:", err);
+      setError(
+        isRegister
+          ? "We couldn’t create your account. Check your details and try again."
+          : "We couldn’t log you in. Check your email and password and try again.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -35,11 +67,10 @@ export default function AuthPage({ mode }: AuthPageProps) {
             {isRegister && <label>First name<input name="name" type="text" autoComplete="given-name" placeholder="Your name" required /></label>}
             <label>Email address<input name="email" type="email" autoComplete="email" placeholder="you@example.com" required /></label>
             <label>Password<input name="password" type="password" autoComplete={isRegister ? "new-password" : "current-password"} placeholder={isRegister ? "At least 8 characters" : "Your password"} minLength={isRegister ? 8 : undefined} required /></label>
-            {!isRegister && <div className="auth-form-meta"><label className="auth-checkbox"><input type="checkbox" name="remember" /> Remember me</label><a href="#forgot-password" onClick={(event) => { event.preventDefault(); setNotice("Password recovery isn’t connected yet."); }}>Forgot password?</a></div>}
-            <button className="button button-dark auth-submit" type="submit">{isRegister ? "Create account" : "Log in"}<span aria-hidden="true">↗</span></button>
-            {notice && <p className="auth-notice" role="status">{notice}</p>}
+            <button className="button button-dark auth-submit" type="submit" disabled={isSubmitting}>{isSubmitting ? (isRegister ? "Creating account..." : "Logging in...") : <>{isRegister ? "Create account" : "Log in"}<span aria-hidden="true">↗</span></>}</button>
+            {error && <p className="auth-notice" role="alert">{error}</p>}
           </form>
-          <p className="auth-switch">{isRegister ? "Already have an account?" : "New to VIBE?"} <Link href={isRegister ? "/login" : "/register"}>{isRegister ? "Log in" : "Create an account"}</Link></p>
+          <p className="auth-switch">{isRegister ? "Already have an account?" : "New to VIBE?"} <Link href={isRegister ? "/login" : "/signup"}>{isRegister ? "Log in" : "Create an account"}</Link></p>
           <p className="auth-privacy">Your wellness journey is personal. We’ll treat it that way.</p>
         </div>
       </section>

@@ -7,9 +7,11 @@ import type {
   ChatMessage,
 } from "@/types";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://127.0.0.1:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || (
+  typeof window !== "undefined" && window.location.hostname === "127.0.0.1"
+    ? "http://127.0.0.1:8000"
+    : "http://localhost:8000"
+);
 
 async function request<T>(
   path: string,
@@ -23,6 +25,7 @@ async function request<T>(
         "Content-Type": "application/json",
         ...(options?.headers || {}),
       },
+      credentials: "include",
     },
   );
 
@@ -34,7 +37,67 @@ async function request<T>(
     );
   }
 
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
   return response.json();
+}
+
+export type AuthenticatedUser = {
+  id: number;
+  name: string;
+  email: string | null;
+};
+
+export type HealthHistoryEvent = {
+  type: "biometric" | "meal" | "experiment" | "pattern" | "goal";
+  timestamp: string;
+  title: string;
+  description: string;
+  metadata: {
+    sleep_minutes?: number;
+    steps?: number;
+    energy_score?: number;
+    meal_type?: string | null;
+    tags?: string[];
+    status?: string;
+    duration_days?: number;
+    progress_percent?: number;
+    category?: string;
+    observation_count?: number;
+    goal_type?: string;
+  };
+};
+
+export async function signup(
+  credentials: { name: string; email: string; password: string },
+): Promise<AuthenticatedUser> {
+  return request<AuthenticatedUser>("/api/auth/signup", {
+    method: "POST",
+    body: JSON.stringify(credentials),
+  });
+}
+
+export async function login(
+  credentials: { email: string; password: string },
+): Promise<AuthenticatedUser> {
+  return request<AuthenticatedUser>("/api/auth/login", {
+    method: "POST",
+    body: JSON.stringify(credentials),
+  });
+}
+
+export async function logout(): Promise<void> {
+  await request<void>("/api/auth/logout", { method: "POST" });
+}
+
+export async function getCurrentUser(): Promise<AuthenticatedUser> {
+  return request<AuthenticatedUser>("/api/auth/me");
+}
+
+export async function getHealthHistoryFromApi(): Promise<HealthHistoryEvent[]> {
+  return request<HealthHistoryEvent[]>("/api/history");
 }
 
 type ApiDashboardResponse = {
@@ -68,6 +131,13 @@ type ApiMeal = {
   logged_at: string;
   time_label: string;
   tags: string[];
+  portion_size?: "small" | "medium" | "large" | null;
+  estimated_calories?: number | null;
+  estimated_protein_g?: number | null;
+  estimated_carbs_g?: number | null;
+  estimated_fat_g?: number | null;
+  estimated_fiber_g?: number | null;
+  nutrition_confidence?: "low" | "medium" | "high" | null;
 };
 
 type ApiExperiment = {
@@ -344,6 +414,13 @@ function mapMeal(data: ApiMeal): Meal {
     loggedAt: data.logged_at,
     timeLabel: data.time_label,
     tags: data.tags || [],
+    portionSize: data.portion_size ?? undefined,
+    estimatedCalories: data.estimated_calories ?? undefined,
+    estimatedProteinG: data.estimated_protein_g ?? undefined,
+    estimatedCarbsG: data.estimated_carbs_g ?? undefined,
+    estimatedFatG: data.estimated_fat_g ?? undefined,
+    estimatedFiberG: data.estimated_fiber_g ?? undefined,
+    nutritionConfidence: data.nutrition_confidence ?? undefined,
   };
 }
 
@@ -478,6 +555,7 @@ export async function createMealFromApi(
       logged_at: meal.loggedAt,
       time_label: meal.timeLabel,
       tags: meal.tags,
+      portion_size: meal.portionSize,
     }),
   });
 

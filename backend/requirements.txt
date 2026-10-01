@@ -5,3 +5,4 @@ pydantic-settings
 psycopg2-binary
 openai
 python-dotenv
+bcrypt

@@ -115,6 +115,14 @@ function buildBaselineMetrics(baseline: PersonalBaseline): WellnessMetric[] {
   });
 }
 
+function isMissingBiometricDataError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    error.message.startsWith("API request failed (404):") &&
+    error.message.includes("No biometric data found for this user.")
+  );
+}
+
 export default function DashboardPage() {
   const [dashboard, setDashboard] =
     useState<DashboardData | null>(null);
@@ -134,6 +142,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] =
     useState<string | null>(null);
+  const [hasNoBiometricData, setHasNoBiometricData] = useState(false);
   const [personalBaseline, setPersonalBaseline] =
     useState<PersonalBaseline | null>(null);
   const [baselineLoading, setBaselineLoading] = useState(true);
@@ -150,6 +159,7 @@ export default function DashboardPage() {
       try {
         setLoading(true);
         setError(null);
+        setHasNoBiometricData(false);
         const [
           dashboardData,
           insightData,
@@ -157,7 +167,12 @@ export default function DashboardPage() {
           patternsData,
           mealsData,
         ] = await Promise.all([
-          getDashboardFromApi(),
+          getDashboardFromApi().catch((dashboardError) => {
+            if (isMissingBiometricDataError(dashboardError)) {
+              return null;
+            }
+            throw dashboardError;
+          }),
           getTodayInsightFromApi(),
           getExperimentsFromApi(),
           getPatternsFromApi(),
@@ -165,6 +180,7 @@ export default function DashboardPage() {
         ]);
 
         setDashboard(dashboardData);
+        setHasNoBiometricData(dashboardData === null);
         setInsight(insightData);
         setExperiments(experimentsData);
         setPatterns(patternsData);
@@ -253,6 +269,50 @@ export default function DashboardPage() {
 
             <p>{error}</p>
           </section>
+        )}
+
+        {!loading && !error && hasNoBiometricData && (
+          <>
+            <section
+              className="dashboard-section"
+              aria-labelledby="signals-title"
+            >
+              <div className="section-heading">
+                <h2 id="signals-title">Today&apos;s signals</h2>
+                <span>A snapshot of your day</span>
+              </div>
+              <p>
+                VIBE needs your first wellness check-in before it can show
+                your personal signals.
+              </p>
+              <Link className="button button-dark" href="/onboarding">
+                Complete your first check-in <span aria-hidden="true">→</span>
+              </Link>
+            </section>
+
+            <section
+              className="dashboard-section experiment-section"
+              aria-labelledby="personal-baseline-title"
+            >
+              <div className="section-heading">
+                <div>
+                  <p className="section-eyebrow">YOUR PERSONAL HISTORY</p>
+                  <h2 id="personal-baseline-title">Personal baseline</h2>
+                </div>
+                <span>Waiting for your first data point</span>
+              </div>
+              {baselineLoading && <p>Loading your personal baseline...</p>}
+              {!baselineLoading && baselineError && (
+                <p>We couldn&apos;t load your personal baseline.</p>
+              )}
+              {!baselineLoading && !baselineError && (
+                <p>
+                  Your first check-in gives VIBE a starting point for your
+                  personal baseline.
+                </p>
+              )}
+            </section>
+          </>
         )}
 
         {!loading &&

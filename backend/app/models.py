@@ -27,6 +27,13 @@ class User(Base):
         nullable=True,
     )
 
+    # Nullable so existing demo users remain intact. Only users created
+    # through /api/auth/signup can authenticate with a password.
+    password_hash: Mapped[Optional[str]] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=datetime.utcnow,
@@ -57,6 +64,24 @@ class User(Base):
         cascade="all, delete-orphan",
         uselist=False,
     )
+
+    sessions: Mapped[list["UserSession"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
+
+class UserSession(Base):
+    __tablename__ = "user_sessions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    # Store only a digest of the high-entropy opaque cookie token.
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    user: Mapped["User"] = relationship(back_populates="sessions")
 
 
 class Biometric(Base):
@@ -150,6 +175,49 @@ class Meal(Base):
         default=list,
     )
 
+    # These are deterministic, coarse estimates, not measured nutrition data.
+    # Nullable fields preserve existing meal records and unknown descriptions.
+    portion_size: Mapped[Optional[str]] = mapped_column(
+        String(10),
+        nullable=True,
+    )
+
+    estimated_calories: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
+    estimated_protein_g: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
+    estimated_carbs_g: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
+    estimated_fat_g: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
+    estimated_fiber_g: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
+    nutrition_confidence: Mapped[Optional[str]] = mapped_column(
+        String(20),
+        nullable=True,
+    )
+
+    @property
+    def nutrition_estimate_note(self) -> Optional[str]:
+        if self.estimated_calories is None:
+            return None
+        return "Estimated from recognized meal text and portion size."
+
     user: Mapped["User"] = relationship(
         back_populates="meals",
     )
@@ -167,6 +235,13 @@ class Experiment(Base):
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id"),
         index=True,
+    )
+
+    # Nullable preserves existing records created before history support.
+    created_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime,
+        default=datetime.utcnow,
+        nullable=True,
     )
 
     title: Mapped[str] = mapped_column(
@@ -252,6 +327,13 @@ class Pattern(Base):
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id"),
         index=True,
+    )
+
+    # Nullable preserves existing records created before history support.
+    created_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime,
+        default=datetime.utcnow,
+        nullable=True,
     )
 
     title: Mapped[str] = mapped_column(

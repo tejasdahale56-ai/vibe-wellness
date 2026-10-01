@@ -1,7 +1,9 @@
 from datetime import datetime
 from typing import Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+import re
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 # -------------------------
@@ -36,19 +38,34 @@ class BiometricResponse(BiometricBase):
 class MealBase(BaseModel):
     name: str
     meal_type: Optional[str] = None
-    description: str
+    description: str = Field(min_length=1)
     logged_at: datetime
     time_label: str
-    tags: list[str] = []
+    tags: list[str] = Field(default_factory=list)
+    portion_size: Optional[Literal["small", "medium", "large"]] = "medium"
+
+    @field_validator("description")
+    @classmethod
+    def validate_description(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("description must not be blank")
+        return value
 
 
 class MealCreate(MealBase):
-    pass
+    portion_size: Literal["small", "medium", "large"] = "medium"
 
 
 class MealResponse(MealBase):
     id: int
     user_id: int
+    estimated_calories: Optional[int] = Field(default=None, ge=0)
+    estimated_protein_g: Optional[int] = Field(default=None, ge=0)
+    estimated_carbs_g: Optional[int] = Field(default=None, ge=0)
+    estimated_fat_g: Optional[int] = Field(default=None, ge=0)
+    estimated_fiber_g: Optional[int] = Field(default=None, ge=0)
+    nutrition_confidence: Optional[Literal["low", "medium"]] = None
+    nutrition_estimate_note: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -196,6 +213,31 @@ class UserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class AuthCredentials(BaseModel):
+    email: str = Field(max_length=255)
+    password: str = Field(min_length=8, max_length=72)
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", normalized):
+            raise ValueError("email must be valid")
+        return normalized
+
+
+class SignupRequest(AuthCredentials):
+    name: str = Field(min_length=1, max_length=100)
+
+    @field_validator("name")
+    @classmethod
+    def normalize_name(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("name must not be blank")
+        return normalized
+
+
 # -------------------------
 # Goals
 # -------------------------
@@ -303,3 +345,15 @@ class PersonalPatternDiscoveryResponse(BaseModel):
     minimum_observations: int = Field(gt=0)
     minimum_group_observations: int = Field(gt=0)
     patterns: list[DiscoveredPatternResponse]
+
+
+# -------------------------
+# History
+# -------------------------
+
+class HistoryEventResponse(BaseModel):
+    type: Literal["biometric", "meal", "experiment", "pattern", "goal"]
+    timestamp: datetime
+    title: str
+    description: str
+    metadata: dict[str, object]

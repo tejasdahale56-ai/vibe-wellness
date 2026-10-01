@@ -171,6 +171,32 @@ h1 em { color: var(--color-accent); font-family: Georgia, serif; font-weight: 40
 .card-supporting-text { display: block; margin-top: 9px; }
 .pattern-symbol { color: var(--color-accent); font-size: 19px; }
 
+/* Health history */
+.history-page { min-height: 100vh; }
+.history-page-main { max-width: 860px; padding-top: 48px; padding-bottom: 68px; }
+.history-page-heading { margin: 10px 0 28px; }
+.history-page-heading .section-eyebrow { margin-bottom: 11px; }
+.history-page-heading h1 { margin: 0 0 10px; font-size: clamp(37px, 5vw, 49px); font-weight: 500; letter-spacing: -2px; line-height: 1.1; }
+.history-page-heading > p:last-child { margin: 0; color: var(--color-muted); font-size: 14px; line-height: 1.65; }
+.history-state { max-width: 620px; }
+.history-state h2 { margin-top: 0; font-family: Georgia, serif; font-size: 22px; font-weight: 400; }
+.history-state .button { margin-top: 18px; }
+.history-timeline { display: grid; gap: 13px; }
+.history-event { display: grid; grid-template-columns: minmax(135px, .36fr) minmax(0, 1fr); gap: 22px; padding: 20px; }
+.history-event-time { padding-top: 3px; color: var(--color-subtle); font-size: 10px; line-height: 1.5; }
+.history-event-time time { display: block; max-width: 105px; }
+.history-event-type { display: inline-flex; align-items: center; min-height: 22px; padding: 3px 8px; border: 1px solid var(--color-border); border-radius: 999px; color: var(--color-muted); font-size: 9px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; }
+.history-event-type[data-type="biometric"] { border-color: #465c4a; color: var(--color-accent); }
+.history-event-type[data-type="meal"] { border-color: #66503a; color: var(--color-warm); }
+.history-event-type[data-type="experiment"] { border-color: #4b5770; color: #b9cbe9; }
+.history-event-type[data-type="pattern"] { border-color: #5a526f; color: #cabeea; }
+.history-event-type[data-type="goal"] { border-color: #58634a; color: #c8d59d; }
+.history-event-content h2 { margin: 10px 0 6px; font-family: Georgia, serif; font-size: 19px; font-weight: 400; letter-spacing: -.25px; }
+.history-event-content > p { margin: 0; color: var(--color-muted); font-size: 12px; line-height: 1.65; }
+.history-event-metadata { margin-top: 12px; }
+.history-event-metadata p { margin: 0; color: var(--color-subtle); font-size: 10px; line-height: 1.6; }
+.history-event-metadata .tag-list { margin-top: 10px; }
+
 /* Dashboard */
 .dashboard-page { min-height: 100vh; }
 .dashboard-nav { height: 76px; }
@@ -192,6 +218,8 @@ h1 em { color: var(--color-accent); font-family: Georgia, serif; font-weight: 40
 .energy-option span { min-height: 44px; }
 .dashboard-links a[aria-current="page"]::after { position: absolute; right: 0; bottom: 2px; left: 0; height: 2px; border-radius: 2px; background: var(--color-accent-strong); content: ""; }
 .dashboard-user { display: flex; align-items: center; gap: 10px; color: var(--color-muted); font-size: 12px; }
+.nav-logout { border: 0; background: transparent; color: var(--color-accent); cursor: pointer; font: inherit; font-size: 11px; font-weight: 700; }
+.nav-logout:disabled { cursor: wait; opacity: .7; }
 .user-avatar { display: grid; width: 31px; height: 31px; place-items: center; border: 1px solid #506048; border-radius: 50%; background: #2b352a; color: var(--color-accent); font-family: Georgia, serif; font-size: 13px; }
 .dashboard-main { max-width: 1080px; padding-top: 54px; }
 .dashboard-greeting { margin-bottom: 43px; }
@@ -218,6 +246,14 @@ h1 em { color: var(--color-accent); font-family: Georgia, serif; font-weight: 40
 .meal-card .content-card-heading { color: var(--color-muted); }
 .meal-card h2 { margin-top: 22px; font-family: Georgia, serif; font-size: 21px; font-weight: 400; }
 .meal-card p { color: var(--color-muted); font-size: 12px; }
+.meal-context { margin-top: 8px !important; color: var(--color-subtle) !important; font-size: 10px !important; text-transform: capitalize; }
+.meal-nutrition { margin-top: 17px; padding-top: 15px; border-top: 1px solid var(--color-border); }
+.meal-nutrition-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.meal-nutrition h3 { margin: 0; color: var(--color-text); font-size: 11px; font-weight: 600; }
+.nutrition-confidence { padding: 4px 7px; border: 1px solid #465541; border-radius: 999px; color: var(--color-accent); font-size: 9px; text-transform: capitalize; white-space: nowrap; }
+.meal-nutrition-calories { display: block; margin-top: 11px; color: var(--color-text); font-family: Georgia, serif; font-size: 22px; font-weight: 400; }
+.meal-nutrition-macros { margin: 5px 0 0 !important; color: var(--color-muted); font-size: 11px !important; line-height: 1.6; }
+.meal-nutrition-note { margin: 9px 0 0 !important; color: var(--color-subtle) !important; font-size: 10px !important; line-height: 1.55; }
 .text-link { display: inline-flex; min-height: 44px; align-items: center; gap: 8px; margin-top: 14px; color: var(--color-accent); font-size: 11px; font-weight: 600; }
 .text-link:hover { color: #d3e6cb; }
 .insight-section { position: relative; padding: 20px 22px 19px; border: 1px solid #43513e; border-radius: 13px; background: linear-gradient(140deg, #202820 0%, #1a201a 65%, #1a1e1a 100%); box-shadow: 0 15px 38px rgba(0,0,0,.16); }
@@ -509,8 +545,14 @@ h1 em { color: var(--color-accent); font-family: Georgia, serif; font-weight: 40
   .dashboard-nav { height: 68px; }
   .dashboard-links { gap: 13px; margin-left: auto; margin-right: 13px; font-size: 11px; }
   .dashboard-user { gap: 0; }
-  .dashboard-user > span:last-child { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+  .dashboard-user > span:nth-of-type(2) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
   .dashboard-main { padding-top: 38px; }
+  .history-page-main { padding-top: 37px; }
+  .history-page-heading { margin-top: 5px; }
+  .history-page-heading h1 { letter-spacing: -1.4px; }
+  .history-event { grid-template-columns: 1fr; gap: 11px; padding: 18px; }
+  .history-event-time { padding-top: 0; }
+  .history-event-time time { max-width: none; }
   .dashboard-greeting { margin-bottom: 32px; }
   .dashboard-greeting h1 { font-size: 34px; letter-spacing: -1.3px; }
   .dashboard-greeting > p:last-child { font-size: 13px; }
