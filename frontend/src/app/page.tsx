@@ -41,12 +41,11 @@ export default function Home() {
       <Navbar />
       <section className="hero wrap" aria-labelledby="hero-title">
         <div className="hero-copy">
-          <div className="eyebrow"><span className="eyebrow-dot" /> YOUR WELLNESS, IN A NEW LIGHT</div>
-          <h1 id="hero-title">Feel more<br />like <em>you.</em></h1>
-          <p className="hero-tagline">Your body has patterns. We help you discover them.</p>
-          <p className="hero-description">Wellness isn’t one-size-fits-all. VIBE helps you notice the little things, understand your patterns, and find what feels right for you.</p>
-          <div className="hero-actions" id="get-started"><Link className="button button-dark" href="/onboarding">Find your rhythm <span aria-hidden="true">↗</span></Link><span className="no-pressure">A gentler way to check in with yourself.</span></div>
-          <div className="social-proof"><div className="avatars" aria-hidden="true"><span>J</span><span>M</span><span>A</span></div><p>Made for real life, <strong>not perfection.</strong></p></div>
+          <div className="eyebrow"><span className="eyebrow-dot" /> PERSONAL WELLNESS, MADE CLEARER</div>
+          <h1 className="landing-hero-title" id="hero-title">Your body has <em>patterns.</em><br />We find them.</h1>
+          <p className="hero-tagline">VIBE is a calm place to observe your rhythms and learn from your own history.</p>
+          <p className="hero-description">Start with a few everyday signals. VIBE helps you notice what repeats, explore a small change, and keep what you learn.</p>
+          <div className="hero-actions" id="get-started"><Link className="button button-dark" href="/signup">Start your check-in <span aria-hidden="true">→</span></Link><span className="no-pressure">No perfect routine required.</span></div>
         </div>
         <div className="hero-visual" aria-label="A preview of your personal wellness insights">
           <div className="sun-glow" aria-hidden="true" /><div className="orbit orbit-one" aria-hidden="true" /><div className="orbit orbit-two" aria-hidden="true" />
@@ -69,13 +68,37 @@ export default function Home() {
           <span className="visual-caption">A clearer picture, at your pace.</span>
         </div>
       </section>
-      <section className="bottom-strip wrap" id="how-it-works" aria-label="How VIBE works">
-        <div className="strip-intro"><span className="strip-star" aria-hidden="true">✳</span><p>Less pressure.<br /><strong>More understanding.</strong></p></div>
-        <div className="strip-item"><span aria-hidden="true">01</span><p><strong>Get curious</strong><small>Notice what your days are telling you.</small></p></div>
-        <div className="strip-item"><span aria-hidden="true">02</span><p><strong>Find your patterns</strong><small>See how the little things connect.</small></p></div>
-        <div className="strip-item"><span aria-hidden="true">03</span><p><strong>Choose what feels right</strong><small>Make wellness yours, one step at a time.</small></p></div>
+      <section className="landing-section wrap" id="how-it-works" aria-labelledby="how-it-works-title">
+        <div className="landing-section-heading">
+          <p className="section-eyebrow">HOW VIBE WORKS</p>
+          <h2 id="how-it-works-title">A simple loop for learning from your own days.</h2>
+          <p>There is no generic score to chase. Just a clear, repeatable way to get curious about your routine.</p>
+        </div>
+        <ol className="vibe-loop">
+          <li><span>01</span><strong>Observe</strong><p>Record the signals and moments that matter to you.</p></li>
+          <li><span>02</span><strong>Hypothesize</strong><p>Notice a small question worth exploring.</p></li>
+          <li><span>03</span><strong>Intervene</strong><p>Try one manageable change at a time.</p></li>
+          <li><span>04</span><strong>Measure</strong><p>Check what happened in your own record.</p></li>
+          <li><span>05</span><strong>Learn</strong><p>Keep observations, not assumptions.</p></li>
+        </ol>
       </section>
-      <footer className="footer wrap" id="why-vibe"><Link className="brand footer-brand" href="/"><span className="brand-mark" aria-hidden="true">v</span>VIBE<span className="brand-period">.</span></Link><span>Wellness, on your wavelength.</span><span>© 2026 VIBE</span></footer>
+      <section className="landing-section landing-approach wrap" id="our-approach" aria-labelledby="our-approach-title">
+        <div className="landing-section-heading">
+          <p className="section-eyebrow">OUR APPROACH</p>
+          <h2 id="our-approach-title">Evidence-aware, personal, and deliberately modest.</h2>
+        </div>
+        <div className="approach-grid">
+          <p><strong>Your baseline first.</strong> VIBE looks for context in your own history rather than comparing you to a generic average.</p>
+          <p><strong>Small N-of-1 experiments.</strong> One focused change can be easier to understand than a complete routine overhaul.</p>
+          <p><strong>Deterministic analytics, with AI where appropriate.</strong> Clear calculations come first; assistance should add context, not certainty.</p>
+          <p><strong>Explanations with evidence in mind.</strong> We distinguish personal observations from population evidence and model estimates.</p>
+        </div>
+      </section>
+      <section className="landing-cta wrap" aria-labelledby="landing-cta-title">
+        <div><p className="section-eyebrow">BEGIN WITH ONE CHECK-IN</p><h2 id="landing-cta-title">Make space to notice what works for you.</h2><p>Your history stays yours. Start with a small signal, then build from there.</p></div>
+        <Link className="button button-dark" href="/signup">Create your VIBE space <span aria-hidden="true">→</span></Link>
+      </section>
+      <footer className="footer wrap"><Link className="brand footer-brand" href="/"><span className="brand-mark" aria-hidden="true">v</span>VIBE<span className="brand-period">.</span></Link><span>Wellness, on your wavelength.</span><span>© 2026 VIBE</span></footer>
     </main>
   );
 }
